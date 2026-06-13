@@ -11,5 +11,6 @@ import "./v24-role-profiles.css";
 import "./v25-two-person-rule.css";
 import "./v26-governance-release-manifest.css";
 import "./v28-release-signoff-widget";
+import "./v28-version-sync";
 
 createRoot(document.getElementById("root")!).render(<App />);
