@@ -1,0 +1,101 @@
+.geo-staging-panel {
+  margin: 1.5rem auto;
+  width: min(1120px, calc(100% - 2rem));
+  padding: 1.25rem;
+  border: 1px solid rgba(129, 186, 255, 0.35);
+  border-radius: 24px;
+  background: rgba(10, 23, 42, 0.78);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+}
+
+.geo-staging-header h2 {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.geo-staging-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+
+.geo-staging-actions button,
+.geo-staging-file {
+  border: 1px solid rgba(129, 186, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(35, 72, 122, 0.7);
+  color: #eef6ff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.65rem 1rem;
+}
+
+.geo-staging-file input {
+  display: none;
+}
+
+.geo-staging-panel textarea {
+  min-height: 170px;
+  width: 100%;
+  border: 1px solid rgba(129, 186, 255, 0.35);
+  border-radius: 18px;
+  background: rgba(5, 14, 28, 0.78);
+  color: #eef6ff;
+  font: 0.9rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 0.9rem;
+  resize: vertical;
+}
+
+.geo-staging-summary,
+.geo-staging-boundary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0.85rem 0;
+}
+
+.geo-staging-summary span,
+.geo-staging-boundary span {
+  border: 1px solid rgba(129, 186, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.45rem 0.7rem;
+}
+
+.geo-staging-empty,
+.geo-staging-digest {
+  border: 1px solid rgba(129, 186, 255, 0.26);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.9rem;
+}
+
+.geo-staging-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.9rem;
+  overflow: hidden;
+}
+
+.geo-staging-table th,
+.geo-staging-table td {
+  border-bottom: 1px solid rgba(129, 186, 255, 0.22);
+  padding: 0.7rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.geo-staging-table span {
+  color: rgba(238, 246, 255, 0.72);
+}
+
+@media (max-width: 720px) {
+  .geo-staging-panel {
+    width: calc(100% - 1rem);
+    padding: 1rem;
+  }
+
+  .geo-staging-table {
+    font-size: 0.85rem;
+  }
+}
