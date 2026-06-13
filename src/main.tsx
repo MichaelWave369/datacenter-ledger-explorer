@@ -16,5 +16,7 @@ import "./v29-release-archive-index.css";
 import "./v29-release-archive-index";
 import "./v30-release-library-mode.css";
 import "./v30-release-library-mode";
+import "./v31-release-library-integrity-check.css";
+import "./v31-release-library-integrity-check";
 
 createRoot(document.getElementById("root")!).render(<App />);
