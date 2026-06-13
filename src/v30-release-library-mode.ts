@@ -3,7 +3,10 @@ export {};
 const LIBRARY_APP_VERSION = '3.0.0';
 const LIBRARY_ARCHIVE_KEY = 'datacenter-ledger.release-archive.v2.9';
 const LIBRARY_LINEAGE_KEY = 'datacenter-ledger.release-library-lineage.v3.0';
-const libraryReviewOnlyNotice = 'This release library is a local public-data review artifact. It is not proof of truth, not a complete registry, and not authorization to publish private or sensitive infrastructure details.';
+
+const libraryReviewOnlyNotice =
+  'This release library is a local public-data review artifact. It is not proof of truth, not a complete registry, and not authorization to publish private or sensitive infrastructure details.';
+
 const librarySafetyBoundary = [
   'Public-data only',
   'No hidden network calls',
@@ -42,8 +45,22 @@ type LineageMetadata = {
   updatedAt: string;
 };
 
-type LibraryEntry = Required<Omit<ArchiveEntryLike, 'payload' | 'ready'>> & {
+type LibraryEntry = {
+  id: string;
+  kind: LibraryKind;
+  schema: string;
+  label: string;
+  releaseName: string;
+  appVersion: string;
+  digest: string;
+  decision: LibraryDecision;
   ready: boolean | null;
+  canonicalCount: number;
+  pendingApprovals: number;
+  blockerCount: number;
+  warningCount: number;
+  createdAt: string;
+  importedAt: string;
   supersedesDigest: string;
   supersededByDigest: string;
   releaseLabel: string;
@@ -52,36 +69,20 @@ type LibraryEntry = Required<Omit<ArchiveEntryLike, 'payload' | 'ready'>> & {
   payload: unknown;
 };
 
-type ReleaseLibraryPacket = {
-  schema: 'DataCenterLedger.ReleaseLibrary.v3.0';
-  generatedAt: string;
-  appVersion: string;
-  entries: LibraryEntry[];
-  publicHistory: Array<{
-    releaseName: string;
-    releaseLabel: string;
-    digest: string;
-    decision: LibraryDecision;
-    ready: boolean | null;
-    supersedesDigest: string;
-    supersededByDigest: string;
-    createdAt: string;
-  }>;
-  summary: {
-    total: number;
-    manifests: number;
-    diffs: number;
-    signoffs: number;
-    approvedSignoffs: number;
-    lineageLinks: number;
-  };
-  safetyBoundary: string[];
-  reviewOnlyNotice: string;
-  libraryDigest: string;
+type LibraryControls = {
+  searchInput: HTMLInputElement;
+  decisionFilter: HTMLSelectElement;
+  currentSelect: HTMLSelectElement;
+  supersedesSelect: HTMLSelectElement;
+  labelInput: HTMLInputElement;
+  notesInput: HTMLTextAreaElement;
+  summaryNode: HTMLDivElement;
+  lineageNode: HTMLDivElement;
+  tableNode: HTMLDivElement;
 };
 
 function libraryDigest(payload: unknown) {
-  const text = JSON.stringify(payload);
+  const text = JSON.stringify(payload) || '';
   let hash = 2166136261;
   for (let index = 0; index < text.length; index += 1) {
     hash ^= text.charCodeAt(index);
@@ -109,12 +110,12 @@ function parseLibraryJson(value: string): unknown | null {
 
 function readArchiveEntries(): ArchiveEntryLike[] {
   const parsed = parseLibraryJson(localStorage.getItem(LIBRARY_ARCHIVE_KEY) || '[]');
-  return Array.isArray(parsed) ? parsed as ArchiveEntryLike[] : [];
+  return Array.isArray(parsed) ? (parsed as ArchiveEntryLike[]) : [];
 }
 
 function readLineageMetadata(): LineageMetadata[] {
   const parsed = parseLibraryJson(localStorage.getItem(LIBRARY_LINEAGE_KEY) || '[]');
-  return Array.isArray(parsed) ? parsed as LineageMetadata[] : [];
+  return Array.isArray(parsed) ? (parsed as LineageMetadata[]) : [];
 }
 
 function writeLineageMetadata(lineage: LineageMetadata[]) {
@@ -122,7 +123,7 @@ function writeLineageMetadata(lineage: LineageMetadata[]) {
 }
 
 function downloadLibraryJson(filename: string, payload: unknown) {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(payload, null, 2) || 'null'], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -139,10 +140,6 @@ function setLibraryTextarea(selector: string, value: string) {
   return true;
 }
 
-function entryDigest(entry: ArchiveEntryLike) {
-  return entry.digest || libraryDigest(entry.payload || entry);
-}
-
 function entryKind(entry: ArchiveEntryLike): LibraryKind {
   return entry.kind || 'unknown';
 }
@@ -151,39 +148,46 @@ function entryDecision(entry: ArchiveEntryLike): LibraryDecision {
   return entry.decision || 'none';
 }
 
-function buildLibraryEntries() {
-  const archive = readArchiveEntries();
+function entryDigest(entry: ArchiveEntryLike) {
+  return entry.digest || libraryDigest(entry.payload || entry);
+}
+
+function buildLibraryEntries(): LibraryEntry[] {
   const lineage = readLineageMetadata();
-  return archive.map((entry) => {
-    const digest = entryDigest(entry);
-    const meta = lineage.filter((candidate) => candidate.digest === digest)[0];
-    const supersededBy = lineage.filter((candidate) => candidate.supersedesDigest === digest)[0];
-    const payload = entry.payload || entry;
-    const fallback = new Date().toISOString();
-    return {
-      id: entry.id || `${entryKind(entry)}-${digest}`,
-      kind: entryKind(entry),
-      schema: entry.schema || 'unknown',
-      label: entry.label || entry.releaseName || 'Unnamed release artifact',
-      releaseName: entry.releaseName || 'Unnamed release',
-      appVersion: entry.appVersion || 'unknown',
-      digest,
-      decision: entryDecision(entry),
-      ready: typeof entry.ready === 'boolean' ? entry.ready : null,
-      canonicalCount: Number(entry.canonicalCount || 0),
-      pendingApprovals: Number(entry.pendingApprovals || 0),
-      blockerCount: Number(entry.blockerCount || 0),
-      warningCount: Number(entry.warningCount || 0),
-      createdAt: entry.createdAt || entry.importedAt || fallback,
-      importedAt: entry.importedAt || fallback,
-      supersedesDigest: meta?.supersedesDigest || '',
-      supersededByDigest: supersededBy?.digest || '',
-      releaseLabel: meta?.releaseLabel || entry.releaseName || entry.label || 'Unnamed release',
-      lineageNotes: meta?.notes || '',
-      payloadDigest: libraryDigest(payload),
-      payload
-    } satisfies LibraryEntry;
-  }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  return readArchiveEntries()
+    .map((entry) => {
+      const digest = entryDigest(entry);
+      const meta = lineage.filter((candidate) => candidate.digest === digest)[0];
+      const supersededBy = lineage.filter((candidate) => candidate.supersedesDigest === digest)[0];
+      const payload = entry.payload || entry;
+      const fallback = new Date().toISOString();
+
+      return {
+        id: entry.id || `${entryKind(entry)}-${digest}`,
+        kind: entryKind(entry),
+        schema: entry.schema || 'unknown',
+        label: entry.label || entry.releaseName || 'Unnamed release artifact',
+        releaseName: entry.releaseName || 'Unnamed release',
+        appVersion: entry.appVersion || 'unknown',
+        digest,
+        decision: entryDecision(entry),
+        ready: typeof entry.ready === 'boolean' ? entry.ready : null,
+        canonicalCount: Number(entry.canonicalCount || 0),
+        pendingApprovals: Number(entry.pendingApprovals || 0),
+        blockerCount: Number(entry.blockerCount || 0),
+        warningCount: Number(entry.warningCount || 0),
+        createdAt: entry.createdAt || entry.importedAt || fallback,
+        importedAt: entry.importedAt || fallback,
+        supersedesDigest: meta?.supersedesDigest || '',
+        supersededByDigest: supersededBy?.digest || '',
+        releaseLabel: meta?.releaseLabel || entry.releaseName || entry.label || 'Unnamed release',
+        lineageNotes: meta?.notes || '',
+        payloadDigest: libraryDigest(payload),
+        payload
+      };
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 function librarySummary(entries: LibraryEntry[]) {
@@ -197,10 +201,10 @@ function librarySummary(entries: LibraryEntry[]) {
   };
 }
 
-function buildReleaseLibraryPacket(): ReleaseLibraryPacket {
+function buildReleaseLibraryPacket() {
   const entries = buildLibraryEntries();
   const packet = {
-    schema: 'DataCenterLedger.ReleaseLibrary.v3.0' as const,
+    schema: 'DataCenterLedger.ReleaseLibrary.v3.0',
     generatedAt: new Date().toISOString(),
     appVersion: LIBRARY_APP_VERSION,
     entries,
@@ -219,6 +223,7 @@ function buildReleaseLibraryPacket(): ReleaseLibraryPacket {
     reviewOnlyNotice: libraryReviewOnlyNotice,
     libraryDigest: 'pending'
   };
+
   return { ...packet, libraryDigest: libraryDigest(packet) };
 }
 
@@ -234,8 +239,47 @@ function updateLineage(digest: string, supersedesDigest: string, releaseLabel: s
   writeLineageMetadata([nextMeta].concat(lineage));
 }
 
+function getLibraryControls(mount: HTMLElement): LibraryControls | null {
+  const searchInput = mount.querySelector<HTMLInputElement>('#dcl-v30-search');
+  const decisionFilter = mount.querySelector<HTMLSelectElement>('#dcl-v30-decision');
+  const currentSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-current');
+  const supersedesSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-supersedes');
+  const labelInput = mount.querySelector<HTMLInputElement>('#dcl-v30-label');
+  const notesInput = mount.querySelector<HTMLTextAreaElement>('#dcl-v30-notes');
+  const summaryNode = mount.querySelector<HTMLDivElement>('#dcl-v30-summary');
+  const lineageNode = mount.querySelector<HTMLDivElement>('#dcl-v30-lineage');
+  const tableNode = mount.querySelector<HTMLDivElement>('#dcl-v30-table');
+
+  if (
+    !searchInput ||
+    !decisionFilter ||
+    !currentSelect ||
+    !supersedesSelect ||
+    !labelInput ||
+    !notesInput ||
+    !summaryNode ||
+    !lineageNode ||
+    !tableNode
+  ) {
+    return null;
+  }
+
+  return {
+    searchInput,
+    decisionFilter,
+    currentSelect,
+    supersedesSelect,
+    labelInput,
+    notesInput,
+    summaryNode,
+    lineageNode,
+    tableNode
+  };
+}
+
 function initReleaseLibraryMode() {
   if (document.getElementById('dcl-v30-release-library')) return;
+
   const mount = document.createElement('section');
   mount.id = 'dcl-v30-release-library';
   mount.className = 'panel release-library-panel v30-widget';
@@ -270,57 +314,54 @@ function initReleaseLibraryMode() {
     <div id='dcl-v30-table' class='library-table'></div>
     <p class='boundary-note'>Release Library Mode is local-only. It organizes review packets and lineage notes; it does not validate source truth, publish data, or authorize sensitive infrastructure disclosure.</p>
   `;
-  document.querySelector('main.shell')?.appendChild(mount);
 
-  const searchInput = mount.querySelector<HTMLInputElement>('#dcl-v30-search');
-  const decisionFilter = mount.querySelector<HTMLSelectElement>('#dcl-v30-decision');
-  const currentSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-current');
-  const supersedesSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-supersedes');
-  const labelInput = mount.querySelector<HTMLInputElement>('#dcl-v30-label');
-  const notesInput = mount.querySelector<HTMLTextAreaElement>('#dcl-v30-notes');
-  const summaryNode = mount.querySelector<HTMLDivElement>('#dcl-v30-summary');
-  const lineageNode = mount.querySelector<HTMLDivElement>('#dcl-v30-lineage');
-  const tableNode = mount.querySelector<HTMLDivElement>('#dcl-v30-table');
+  const host = document.querySelector('main.shell') || document.querySelector('#root') || document.body;
+  host.appendChild(mount);
 
-  if (!searchInput || !decisionFilter || !currentSelect || !supersedesSelect || !labelInput || !notesInput || !summaryNode || !lineageNode || !tableNode) return;
+  const controls = getLibraryControls(mount);
+  if (!controls) return;
 
   function getCurrentEntry() {
-    const digest = currentSelect.value;
+    const digest = controls.currentSelect.value;
     return buildLibraryEntries().filter((entry) => entry.digest === digest)[0] || null;
   }
 
   function getSupersedesEntry() {
-    const digest = supersedesSelect.value;
+    const digest = controls.supersedesSelect.value;
     return buildLibraryEntries().filter((entry) => entry.digest === digest)[0] || null;
   }
 
   function refreshSelects(entries: LibraryEntry[]) {
-    const previousCurrent = currentSelect.value;
-    const previousSupersedes = supersedesSelect.value;
-    const options = entries.map((entry) => `<option value='${libraryEscape(entry.digest)}'>${libraryEscape(entry.releaseLabel)} · ${libraryEscape(entry.digest)}</option>`).join('');
-    currentSelect.innerHTML = options || `<option value=''>No archived releases yet</option>`;
-    supersedesSelect.innerHTML = `<option value=''>None / first release</option>${options}`;
-    if (entries.some((entry) => entry.digest === previousCurrent)) currentSelect.value = previousCurrent;
-    if (entries.some((entry) => entry.digest === previousSupersedes)) supersedesSelect.value = previousSupersedes;
+    const previousCurrent = controls.currentSelect.value;
+    const previousSupersedes = controls.supersedesSelect.value;
+    const options = entries
+      .map((entry) => `<option value='${libraryEscape(entry.digest)}'>${libraryEscape(entry.releaseLabel)} · ${libraryEscape(entry.digest)}</option>`)
+      .join('');
+
+    controls.currentSelect.innerHTML = options || `<option value=''>No archived releases yet</option>`;
+    controls.supersedesSelect.innerHTML = `<option value=''>None / first release</option>${options}`;
+
+    if (entries.some((entry) => entry.digest === previousCurrent)) controls.currentSelect.value = previousCurrent;
+    if (entries.some((entry) => entry.digest === previousSupersedes)) controls.supersedesSelect.value = previousSupersedes;
   }
 
   function filteredEntries() {
-    const query = searchInput.value.trim().toLowerCase();
-    const decision = decisionFilter.value;
+    const query = controls.searchInput.value.trim().toLowerCase();
+    const decision = controls.decisionFilter.value;
+
     return buildLibraryEntries().filter((entry) => {
       const matchesDecision = decision === 'all' || entry.decision === decision;
       const haystack = `${entry.releaseName} ${entry.releaseLabel} ${entry.label} ${entry.digest} ${entry.schema} ${entry.decision}`.toLowerCase();
-      const matchesQuery = !query || haystack.indexOf(query) >= 0;
-      return matchesDecision && matchesQuery;
+      return matchesDecision && (!query || haystack.indexOf(query) >= 0);
     });
   }
 
   function syncEditorFromCurrent() {
     const current = getCurrentEntry();
     if (!current) return;
-    labelInput.value = current.releaseLabel;
-    notesInput.value = current.lineageNotes;
-    supersedesSelect.value = current.supersedesDigest;
+    controls.labelInput.value = current.releaseLabel;
+    controls.notesInput.value = current.lineageNotes;
+    controls.supersedesSelect.value = current.supersedesDigest;
   }
 
   function render() {
@@ -328,44 +369,62 @@ function initReleaseLibraryMode() {
     const visible = filteredEntries();
     const summary = librarySummary(entries);
     refreshSelects(entries);
-    summaryNode.innerHTML = `
+
+    controls.summaryNode.innerHTML = `
       <div><strong>${summary.total}</strong><span>library entries</span></div>
       <div><strong>${summary.signoffs}</strong><span>signoffs</span></div>
       <div><strong>${summary.approvedSignoffs}</strong><span>approved</span></div>
       <div><strong>${summary.lineageLinks}</strong><span>lineage links</span></div>
     `;
-    lineageNode.innerHTML = entries.filter((entry) => entry.supersedesDigest).length ? entries.filter((entry) => entry.supersedesDigest).map((entry) => {
-      const previous = entries.filter((candidate) => candidate.digest === entry.supersedesDigest)[0];
-      return `<article class='lineage-card'><strong>${libraryEscape(entry.releaseLabel)}</strong><span>supersedes</span><em>${libraryEscape(previous?.releaseLabel || entry.supersedesDigest)}</em><p>${libraryEscape(entry.lineageNotes || 'No lineage note supplied.')}</p></article>`;
-    }).join('') : `<div class='emptyArchive'>No release lineage links saved yet.</div>`;
-    tableNode.innerHTML = visible.length ? visible.map((entry) => `
-      <article class='library-entry ${libraryEscape(entry.kind)}'>
-        <div>
-          <p class='eyebrow'>${libraryEscape(entry.kind)} · ${libraryEscape(entry.decision)}</p>
-          <h3>${libraryEscape(entry.releaseLabel)}</h3>
-          <p>${libraryEscape(entry.releaseName)} · ${libraryEscape(entry.schema)}</p>
-          <code>${libraryEscape(entry.digest)}</code>
-        </div>
-        <div class='library-metrics'>
-          <span>Ready: ${entry.ready === null ? 'n/a' : libraryEscape(entry.ready ? 'yes' : 'no')}</span>
-          <span>Canonical: ${libraryEscape(entry.canonicalCount)}</span>
-          <span>Blocks/Warns: ${libraryEscape(entry.blockerCount)} / ${libraryEscape(entry.warningCount)}</span>
-          <span>Supersedes: ${entry.supersedesDigest ? libraryEscape(entry.supersedesDigest) : 'none'}</span>
-        </div>
-        <div class='archive-buttons'>
-          <button data-action='select' data-digest='${libraryEscape(entry.digest)}'>Select</button>
-          <button data-action='signoff' data-digest='${libraryEscape(entry.digest)}'>Send to signoff</button>
-          <button data-action='export' data-digest='${libraryEscape(entry.digest)}'>Export artifact</button>
-        </div>
-      </article>
-    `).join('') : `<div class='emptyArchive'>No releases match the current filters.</div>`;
+
+    const lineages = entries.filter((entry) => entry.supersedesDigest);
+    controls.lineageNode.innerHTML = lineages.length
+      ? lineages
+          .map((entry) => {
+            const previous = entries.filter((candidate) => candidate.digest === entry.supersedesDigest)[0];
+            return `<article class='lineage-card'><strong>${libraryEscape(entry.releaseLabel)}</strong><span>supersedes</span><em>${libraryEscape(previous?.releaseLabel || entry.supersedesDigest)}</em><p>${libraryEscape(entry.lineageNotes || 'No lineage note supplied.')}</p></article>`;
+          })
+          .join('')
+      : `<div class='emptyArchive'>No release lineage links saved yet.</div>`;
+
+    controls.tableNode.innerHTML = visible.length
+      ? visible
+          .map((entry) => `
+            <article class='library-entry ${libraryEscape(entry.kind)}'>
+              <div>
+                <p class='eyebrow'>${libraryEscape(entry.kind)} · ${libraryEscape(entry.decision)}</p>
+                <h3>${libraryEscape(entry.releaseLabel)}</h3>
+                <p>${libraryEscape(entry.releaseName)} · ${libraryEscape(entry.schema)}</p>
+                <code>${libraryEscape(entry.digest)}</code>
+              </div>
+              <div class='library-metrics'>
+                <span>Ready: ${entry.ready === null ? 'n/a' : libraryEscape(entry.ready ? 'yes' : 'no')}</span>
+                <span>Canonical: ${libraryEscape(entry.canonicalCount)}</span>
+                <span>Blocks/Warns: ${libraryEscape(entry.blockerCount)} / ${libraryEscape(entry.warningCount)}</span>
+                <span>Supersedes: ${entry.supersedesDigest ? libraryEscape(entry.supersedesDigest) : 'none'}</span>
+              </div>
+              <div class='archive-buttons'>
+                <button data-action='select' data-digest='${libraryEscape(entry.digest)}'>Select</button>
+                <button data-action='signoff' data-digest='${libraryEscape(entry.digest)}'>Send to signoff</button>
+                <button data-action='export' data-digest='${libraryEscape(entry.digest)}'>Export artifact</button>
+              </div>
+            </article>
+          `)
+          .join('')
+      : `<div class='emptyArchive'>No releases match the current filters.</div>`;
   }
 
   mount.querySelector<HTMLButtonElement>('#dcl-v30-save-lineage')?.addEventListener('click', () => {
     const current = getCurrentEntry();
     if (!current) return;
-    updateLineage(current.digest, supersedesSelect.value, labelInput.value.trim() || current.releaseName, notesInput.value.trim());
+    updateLineage(
+      current.digest,
+      controls.supersedesSelect.value,
+      controls.labelInput.value.trim() || current.releaseName,
+      controls.notesInput.value.trim()
+    );
     render();
+    syncEditorFromCurrent();
   });
 
   mount.querySelector<HTMLButtonElement>('#dcl-v30-export-library')?.addEventListener('click', () => {
@@ -388,7 +447,7 @@ function initReleaseLibraryMode() {
   mount.querySelector<HTMLButtonElement>('#dcl-v30-send-signoff')?.addEventListener('click', () => {
     const current = getCurrentEntry();
     if (!current) return;
-    setLibraryTextarea('#dcl-v28-manifest', JSON.stringify(current.payload, null, 2));
+    setLibraryTextarea('#dcl-v28-manifest', JSON.stringify(current.payload, null, 2) || '{}');
   });
 
   mount.querySelector<HTMLButtonElement>('#dcl-v30-export-compare')?.addEventListener('click', () => {
@@ -409,30 +468,37 @@ function initReleaseLibraryMode() {
     });
   });
 
-  tableNode.addEventListener('click', (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
+  controls.tableNode.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const button = target.closest<HTMLButtonElement>('button[data-action]');
     if (!button) return;
+
     const digest = button.dataset.digest || '';
     const action = button.dataset.action || '';
     const entry = buildLibraryEntries().filter((candidate) => candidate.digest === digest)[0];
     if (!entry) return;
+
     if (action === 'select') {
-      currentSelect.value = entry.digest;
+      controls.currentSelect.value = entry.digest;
       syncEditorFromCurrent();
       return;
     }
+
     if (action === 'signoff') {
-      setLibraryTextarea('#dcl-v28-manifest', JSON.stringify(entry.payload, null, 2));
+      setLibraryTextarea('#dcl-v28-manifest', JSON.stringify(entry.payload, null, 2) || '{}');
       return;
     }
+
     if (action === 'export') {
       downloadLibraryJson(`datacenter-ledger-library-artifact-${entry.kind}-${entry.digest}.json`, entry.payload);
     }
   });
 
-  [searchInput, decisionFilter].forEach((input) => input.addEventListener('input', render));
-  currentSelect.addEventListener('change', syncEditorFromCurrent);
+  [controls.searchInput, controls.decisionFilter].forEach((control) => control.addEventListener('input', render));
+  controls.currentSelect.addEventListener('change', syncEditorFromCurrent);
   window.addEventListener('storage', render);
+
   render();
   syncEditorFromCurrent();
 }
