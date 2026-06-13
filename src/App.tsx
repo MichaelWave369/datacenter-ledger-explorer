@@ -316,6 +316,9 @@ function buildImportPreview(text: string, origin: string, existingRecords: Ledge
   if (headers.length === 0) {
     pushWarning(globalWarnings, 1, "blocking", "CSV text is empty or missing a header row.");
   }
+  if (headers.length > 0 && rows.length === 0) {
+    pushWarning(globalWarnings, 1, "blocking", "CSV has a header row but no data rows.");
+  }
 
   const recommendedColumns = ["name", "state", "source"];
   for (const column of recommendedColumns) {
@@ -704,6 +707,15 @@ export default function App() {
               <span><strong>Digest:</strong> {importPreview.digest}</span>
             </div>
             {hasBlockingImport && <p className="dangerText">Blocking issues must be fixed before this batch can be committed.</p>}
+            {importPreview.warnings.length > 0 && (
+              <div className="globalWarnings">
+                {importPreview.warnings.map((warning) => (
+                  <span key={`${warning.field}-${warning.message}`} className={`chip ${warning.level === "blocking" ? "danger" : warning.level === "info" ? "info" : "warn"}`}>
+                    batch {warning.level}: {warning.message}
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="tableWrap previewTable">
               <table>
                 <thead><tr><th>Row</th><th>Name</th><th>State</th><th>Source</th><th>Warnings</th></tr></thead>
