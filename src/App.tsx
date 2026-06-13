@@ -8,6 +8,7 @@ type SourceType = "public_dataset" | "permit" | "utility" | "operator" | "news" 
 type WarningLevel = "info" | "warning" | "blocking";
 type QualityBand = "strong" | "moderate" | "weak" | "blocked";
 type RegionMode = "state" | "county";
+type ChecklistStatus = "pass" | "warning" | "fail" | "needs_human";
 
 type Receipt = {
   receiptId?: string;
@@ -126,7 +127,47 @@ type RegionalSummary = {
   digest: string;
 };
 
-const APP_VERSION = "1.5.0";
+type RegionalChecklistItem = {
+  id: string;
+  label: string;
+  status: ChecklistStatus;
+  detail: string;
+};
+
+type RegionalEvidencePacket = {
+  schema: string;
+  generatedAt: string;
+  appVersion: string;
+  safetyBoundary: string[];
+  regionalSummary: RegionalSummary;
+  records: {
+    id: string;
+    name: string;
+    operator: string;
+    status: Status;
+    lifecycle: Lifecycle;
+    state: string;
+    county: string;
+    city?: string;
+    precision: Precision;
+    capacityMW?: number;
+    canonicalBlockers: string[];
+    reviewWarnings: string[];
+    sourceQuality: SourceQualityReport;
+    receipts: Receipt[];
+  }[];
+  receiptCoverage: {
+    totalReceipts: number;
+    recordsWithReceipts: number;
+    recordsWithPublicLinks: number;
+    publicLinkCoverage: number;
+  };
+  reviewChecklist: RegionalChecklistItem[];
+  humanReviewPrompts: string[];
+  digest: string;
+};
+
+const APP_VERSION = "1.6.0";
 
 const validStatuses: Status[] = ["operating", "planned", "under_construction", "approved", "unknown"];
 const validSourceTypes: SourceType[] = ["public_dataset", "permit", "utility", "operator", "news", "review", "other"];
@@ -142,22 +183,10 @@ const publicBoundary = [
 ];
 
 const safeUseSteps = [
-  {
-    title: "Start with public sources",
-    body: "Import only public datasets, permits, utility filings, operator announcements, or news records you can cite."
-  },
-  {
-    title: "Preview before commit",
-    body: "Use the import workbench to inspect normalized rows, warnings, source posture, and batch receipts before adding records."
-  },
-  {
-    title: "Review by region, not coordinates",
-    body: "Use the v1.5 regional view for state/county summaries, quality bands, and review gaps without exposing a targeting map."
-  },
-  {
-    title: "Promote slowly",
-    body: "A public record should have receipts, clear precision, source quality, and no open review warnings before it becomes canonical."
-  }
+  { title: "Start with public sources", body: "Import only public datasets, permits, utility filings, operator announcements, or news records you can cite." },
+  { title: "Preview before commit", body: "Use the import workbench to inspect normalized rows, warnings, source posture, and batch receipts before adding records." },
+  { title: "Review by region, not coordinates", body: "Use state/county summaries and regional evidence packets instead of exact facility markers or targeting details." },
+  { title: "Export evidence slowly", body: "Use the v1.6 regional packet to review blockers, receipt coverage, and human checklist items before public promotion." }
 ];
 
 const sampleCsv = `id,name,operator,status,state,county,city,capacity_mw,sqft,confidence,source,source_type,source_url,source_claim,retrieved_at
@@ -327,6 +356,75 @@ function buildRegionalSummaries(records: LedgerRecord[], qualityById: Map<string
       digest: digest({ key, mode, recordIds: bucket.map((record) => record.id), averageQuality, qualityBandCounts, statusCounts, precisionCounts, topGaps })
     };
   }).sort((a, b) => b.recordCount - a.recordCount || a.label.localeCompare(b.label));
+}
+
+function regionChecklist(region: RegionalSummary, regionRecords: LedgerRecord[], qualityById: Map<string, SourceQualityReport>): RegionalChecklistItem[] {
+  const reports = regionRecords.map((record) => qualityById.get(record.id) || sourceQuality(record));
+  const recordsWithReceipts = regionRecords.filter((record) => record.receipts.length > 0).length;
+  const recordsWithLinks = regionRecords.filter((record) => record.receipts.some((receipt) => Boolean(receipt.sourceUrl))).length;
+  const highImpactRecords = regionRecords.filter((record) => record.capacityMW && record.capacityMW > 0);
+  const highImpactCovered = highImpactRecords.filter((record) => (qualityById.get(record.id) || sourceQuality(record)).highImpactCoverage !== "needs_second_source").length;
+  const unknownPrecision = regionRecords.filter((record) => record.precision === "unknown").length;
+  const exactCoordinateSafe = regionRecords.every((record) => record.precision !== "public_dataset" || record.receipts.length > 0);
+  const unresolvedWarnings = regionRecords.reduce((sum, record) => sum + record.reviewWarnings.length, 0);
+  const blockedQuality = reports.filter((report) => report.band === "blocked").length;
+
+  return [
+    { id: "map_safe_boundary", label: "Map-safe boundary", status: exactCoordinateSafe ? "pass" : "needs_human", detail: "Packet uses state/county grouping and omits exact markers, private access details, sensitive layouts, and non-public enrichment." },
+    { id: "receipt_coverage", label: "Receipt coverage", status: recordsWithReceipts === region.recordCount ? "pass" : recordsWithReceipts > 0 ? "warning" : "fail", detail: `${recordsWithReceipts}/${region.recordCount} regional record(s) have at least one receipt.` },
+    { id: "public_link_coverage", label: "Public-link coverage", status: recordsWithLinks === region.recordCount ? "pass" : recordsWithLinks > 0 ? "warning" : "fail", detail: `${recordsWithLinks}/${region.recordCount} regional record(s) include at least one public source URL.` },
+    { id: "source_quality", label: "Average source quality", status: region.averageQuality >= 70 ? "pass" : region.averageQuality >= 50 ? "warning" : "fail", detail: `Regional average source quality is ${region.averageQuality}%.` },
+    { id: "high_impact_claims", label: "High-impact claims", status: highImpactRecords.length === 0 ? "pass" : highImpactCovered === highImpactRecords.length ? "pass" : "needs_human", detail: highImpactRecords.length === 0 ? "No MW/high-impact claims detected in this regional packet." : `${highImpactCovered}/${highImpactRecords.length} MW/high-impact record(s) appear corroborated by the current quality gate.` },
+    { id: "unresolved_warnings", label: "Unresolved warnings", status: unresolvedWarnings === 0 ? "pass" : unresolvedWarnings <= region.recordCount ? "warning" : "fail", detail: `${unresolvedWarnings} unresolved review warning(s) remain across this region.` },
+    { id: "location_precision", label: "Location precision", status: unknownPrecision === 0 ? "pass" : "warning", detail: `${unknownPrecision} record(s) have unknown location precision.` },
+    { id: "blocked_records", label: "Blocked quality records", status: blockedQuality === 0 ? "pass" : "warning", detail: `${blockedQuality} record(s) are currently in the blocked source-quality band.` }
+  ];
+}
+
+function buildRegionalEvidencePacket(region: RegionalSummary, records: LedgerRecord[], qualityById: Map<string, SourceQualityReport>): RegionalEvidencePacket {
+  const generatedAt = nowIso();
+  const regionRecords = records.filter((record) => region.recordIds.includes(record.id));
+  const totalReceipts = regionRecords.reduce((sum, record) => sum + record.receipts.length, 0);
+  const recordsWithReceipts = regionRecords.filter((record) => record.receipts.length > 0).length;
+  const recordsWithPublicLinks = regionRecords.filter((record) => record.receipts.some((receipt) => Boolean(receipt.sourceUrl))).length;
+  const publicLinkCoverage = regionRecords.length ? Math.round((recordsWithPublicLinks / regionRecords.length) * 100) : 0;
+  const reviewChecklist = regionChecklist(region, regionRecords, qualityById);
+  const humanReviewPrompts = [
+    `Verify that all sources in ${region.label} are public and appropriate to cite.`,
+    "Confirm that high-impact claims such as MW capacity, jobs, water, or construction status have independent corroboration.",
+    "Resolve any remaining review warnings before treating this region as public/canonical.",
+    "Keep regional outputs at state/county precision unless exact location has already been published by the source dataset."
+  ];
+  const packetRecords = regionRecords.map((record) => ({
+    id: record.id,
+    name: record.name,
+    operator: record.operator,
+    status: record.status,
+    lifecycle: record.lifecycle,
+    state: record.state,
+    county: record.county,
+    city: record.city,
+    precision: record.precision,
+    capacityMW: record.capacityMW,
+    canonicalBlockers: canonicalBlockers(record),
+    reviewWarnings: record.reviewWarnings,
+    sourceQuality: qualityById.get(record.id) || sourceQuality(record),
+    receipts: record.receipts
+  }));
+
+  const digestPayload = { region, packetRecords, reviewChecklist, receiptCoverage: { totalReceipts, recordsWithReceipts, recordsWithPublicLinks, publicLinkCoverage } };
+  return {
+    schema: "DataCenterLedger.RegionalEvidencePacket.v1.6",
+    generatedAt,
+    appVersion: APP_VERSION,
+    safetyBoundary: publicBoundary,
+    regionalSummary: region,
+    records: packetRecords,
+    receiptCoverage: { totalReceipts, recordsWithReceipts, recordsWithPublicLinks, publicLinkCoverage },
+    reviewChecklist,
+    humanReviewPrompts,
+    digest: digest(digestPayload)
+  };
 }
 
 function splitCsvLine(line: string) {
@@ -536,6 +634,12 @@ function bandChipClass(band: QualityBand) {
   return "chip danger";
 }
 
+function checklistChipClass(status: ChecklistStatus) {
+  if (status === "pass") return "chip ok";
+  if (status === "warning" || status === "needs_human") return "chip warn";
+  return "chip danger";
+}
+
 export default function App() {
   const [records, setRecords] = useState<LedgerRecord[]>(starterRecords);
   const [selectedId, setSelectedId] = useState(starterRecords[0].id);
@@ -562,6 +666,7 @@ export default function App() {
   const demoRecords = useMemo(() => records.filter((record) => record.id.startsWith("dcl-demo-")), [records]);
   const regionalSummaries = useMemo(() => buildRegionalSummaries(records, qualityById, regionMode), [records, qualityById, regionMode]);
   const selectedRegion = regionalSummaries.find((region) => region.key === selectedRegionKey) || regionalSummaries[0];
+  const selectedRegionalEvidence = useMemo(() => selectedRegion ? buildRegionalEvidencePacket(selectedRegion, records, qualityById) : null, [selectedRegion, records, qualityById]);
   const importWarnings = allPreviewWarnings(importPreview);
   const hasBlockingImport = importWarnings.some((warning) => warning.level === "blocking");
   const receiptDraftWarnings = useMemo(() => validateReceiptDraft(receiptDraft), [receiptDraft]);
@@ -630,49 +735,50 @@ export default function App() {
   }
 
   function exportLedger() {
-    downloadJson("datacenter-ledger-export.json", { schema: "DataCenterLedger.Export.v1.5-map-safe-regional-view", generatedAt: nowIso(), appVersion: APP_VERSION, boundary: publicBoundary, importHistory, receiptHistory, sourceQuality: qualityReports, regionalSummaries, records, digest: digest({ records, importHistory, receiptHistory, qualityReports, regionalSummaries }) });
+    downloadJson("datacenter-ledger-export.json", { schema: "DataCenterLedger.Export.v1.6-regional-evidence-packet", generatedAt: nowIso(), appVersion: APP_VERSION, boundary: publicBoundary, importHistory, receiptHistory, sourceQuality: qualityReports, regionalSummaries, selectedRegionalEvidence, records, digest: digest({ records, importHistory, receiptHistory, qualityReports, regionalSummaries, selectedRegionalEvidence }) });
   }
   function exportCanonical() {
     const included = canonicalRecords.map((record) => ({ ...record, sourceQuality: qualityById.get(record.id) }));
     const excluded = records.filter((record) => canonicalBlockers(record).length > 0).map((record) => ({ id: record.id, name: record.name, sourceQuality: qualityById.get(record.id), blockers: canonicalBlockers(record) }));
-    downloadJson("datacenter-ledger-canonical.json", { schema: "DataCenterLedger.CanonicalRegistry.v1.5-map-safe-regional-view", generatedAt: nowIso(), appVersion: APP_VERSION, included, excluded, regionalSummaries, digest: digest({ included, excluded, regionalSummaries }) });
+    downloadJson("datacenter-ledger-canonical.json", { schema: "DataCenterLedger.CanonicalRegistry.v1.6-regional-evidence-packet", generatedAt: nowIso(), appVersion: APP_VERSION, included, excluded, regionalSummaries, digest: digest({ included, excluded, regionalSummaries }) });
   }
   function exportLaunchPacket() {
-    downloadJson("datacenter-ledger-public-launch-packet.json", { schema: "DataCenterLedger.PublicLaunchPacket.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, purpose: "Public-safe civic transparency workbench for reviewing U.S. data center records as source-backed claims.", boundary: publicBoundary, safeUseSteps, stats: { records: records.length, regions: regionalSummaries.length, demoRecords: demoRecords.length, canonicalRecords: canonicalRecords.length, needsReview: reviewRecords.length, receipts: records.reduce((sum, record) => sum + record.receipts.length, 0), receiptEdits: receiptHistory.length, importBatches: importHistory.length, averageSourceQuality: averageQuality }, digest: digest({ records, importHistory, receiptHistory, qualityReports, regionalSummaries, publicBoundary, safeUseSteps }) });
+    downloadJson("datacenter-ledger-public-launch-packet.json", { schema: "DataCenterLedger.PublicLaunchPacket.v1.6", generatedAt: nowIso(), appVersion: APP_VERSION, purpose: "Public-safe civic transparency workbench for reviewing U.S. data center records as source-backed claims.", boundary: publicBoundary, safeUseSteps, stats: { records: records.length, regions: regionalSummaries.length, demoRecords: demoRecords.length, canonicalRecords: canonicalRecords.length, needsReview: reviewRecords.length, receipts: records.reduce((sum, record) => sum + record.receipts.length, 0), receiptEdits: receiptHistory.length, importBatches: importHistory.length, averageSourceQuality: averageQuality }, digest: digest({ records, importHistory, receiptHistory, qualityReports, regionalSummaries, selectedRegionalEvidence, publicBoundary, safeUseSteps }) });
   }
-  function exportImportPreview() { if (!importPreview) return; downloadJson("datacenter-ledger-import-preview.json", { schema: "DataCenterLedger.ImportPreview.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, preview: importPreview, warningSummary: { total: warningCount(importPreview), blocking: warningCount(importPreview, "blocking"), warning: warningCount(importPreview, "warning"), info: warningCount(importPreview, "info") } }); }
-  function exportImportHistory() { downloadJson("datacenter-ledger-import-history.json", { schema: "DataCenterLedger.ImportHistory.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, importHistory, digest: digest(importHistory) }); }
-  function exportSelectedReceiptPacket() { downloadJson("datacenter-ledger-selected-receipts.json", { schema: "DataCenterLedger.SelectedReceiptPacket.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, selectedRecord: selected, sourceQuality: selectedQuality, regionalContext: regionalSummaries.filter((region) => region.recordIds.includes(selected.id)), canonicalBlockers: canonicalBlockers(selected), receiptHistory: selectedReceiptHistory, digest: digest({ selected, selectedQuality, selectedReceiptHistory }) }); }
-  function exportReceiptHistory() { downloadJson("datacenter-ledger-receipt-history.json", { schema: "DataCenterLedger.ReceiptEditHistory.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, receiptHistory, digest: digest(receiptHistory) }); }
-  function exportSourceQuality() { downloadJson("datacenter-ledger-source-quality.json", { schema: "DataCenterLedger.SourceQualityScoreboard.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, summary: { averageQuality, ...qualityCounts }, reports: qualityReports, digest: digest({ qualityReports, averageQuality, qualityCounts }) }); }
-  function exportRegionalSummary() { downloadJson("datacenter-ledger-regional-summary.json", { schema: "DataCenterLedger.MapSafeRegionalSummary.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, mode: regionMode, safetyBoundary: publicBoundary, selectedRegion, regions: regionalSummaries, digest: digest({ regionMode, selectedRegion, regionalSummaries }) }); }
+  function exportImportPreview() { if (!importPreview) return; downloadJson("datacenter-ledger-import-preview.json", { schema: "DataCenterLedger.ImportPreview.v1.6", generatedAt: nowIso(), appVersion: APP_VERSION, preview: importPreview, warningSummary: { total: warningCount(importPreview), blocking: warningCount(importPreview, "blocking"), warning: warningCount(importPreview, "warning"), info: warningCount(importPreview, "info") } }); }
+  function exportImportHistory() { downloadJson("datacenter-ledger-import-history.json", { schema: "DataCenterLedger.ImportHistory.v1.6", generatedAt: nowIso(), appVersion: APP_VERSION, importHistory, digest: digest(importHistory) }); }
+  function exportSelectedReceiptPacket() { downloadJson("datacenter-ledger-selected-receipts.json", { schema: "DataCenterLedger.SelectedReceiptPacket.v1.6", generatedAt: nowIso(), appVersion: APP_VERSION, selectedRecord: selected, sourceQuality: selectedQuality, regionalContext: regionalSummaries.filter((region) => region.recordIds.includes(selected.id)), canonicalBlockers: canonicalBlockers(selected), receiptHistory: selectedReceiptHistory, digest: digest({ selected, selectedQuality, selectedReceiptHistory }) }); }
+  function exportReceiptHistory() { downloadJson("datacenter-ledger-receipt-history.json", { schema: "DataCenterLedger.ReceiptEditHistory.v1.6", generatedAt: nowIso(), appVersion: APP_VERSION, receiptHistory, digest: digest(receiptHistory) }); }
+  function exportSourceQuality() { downloadJson("datacenter-ledger-source-quality.json", { schema: "DataCenterLedger.SourceQualityScoreboard.v1.6", generatedAt: nowIso(), appVersion: APP_VERSION, summary: { averageQuality, ...qualityCounts }, reports: qualityReports, digest: digest({ qualityReports, averageQuality, qualityCounts }) }); }
+  function exportRegionalSummary() { downloadJson("datacenter-ledger-regional-summary.json", { schema: "DataCenterLedger.MapSafeRegionalSummary.v1.6", generatedAt: nowIso(), appVersion: APP_VERSION, mode: regionMode, safetyBoundary: publicBoundary, selectedRegion, regions: regionalSummaries, digest: digest({ regionMode, selectedRegion, regionalSummaries }) }); }
+  function exportRegionalEvidencePacket() { if (!selectedRegionalEvidence) return; downloadJson("datacenter-ledger-regional-evidence-packet.json", selectedRegionalEvidence); }
 
   return (
     <main className="shell">
       <header className="hero launchHero">
         <div>
-          <p className="eyebrow">v{APP_VERSION} map-safe regional view • local-first • receipt-backed</p>
+          <p className="eyebrow">v{APP_VERSION} regional evidence packet • local-first • receipt-backed</p>
           <h1>DataCenterLedger Explorer</h1>
-          <p>A civic transparency workbench for reviewing public data center records as claims — with receipts, confidence scores, source-quality scoring, regional summaries, import review gates, lifecycle decisions, canonical exports, and a clear safety boundary.</p>
+          <p>A civic transparency workbench for reviewing public data center records as claims — with receipts, confidence scores, source-quality scoring, regional evidence packets, import review gates, lifecycle decisions, canonical exports, and a clear safety boundary.</p>
           <div className="boundaryPills" aria-label="Public safety boundary">{publicBoundary.map((item) => <span key={item}>{item}</span>)}</div>
         </div>
         <div className="heroActions"><button onClick={exportLedger}>Export Ledger JSON</button><button onClick={exportCanonical}>Export Canonical JSON</button><button onClick={exportLaunchPacket}>Export Launch Packet</button></div>
       </header>
 
       <section className="launchGrid" aria-label="Launch overview">
-        <div className="panel introPanel"><p className="eyebrow">What this is</p><h2>Public records in, reviewed Ledger out.</h2><p>Paste or load a CSV, preview normalized rows, inspect warnings before commit, preserve source receipts, attach new source receipts, score source quality, summarize by state/county, and export either the full working Ledger or only records that pass the canonical gate.</p></div>
-        <div className="panel introPanel cautionPanel"><p className="eyebrow">What this is not</p><h2>Not a targeting map.</h2><p>The v1.5 regional view intentionally shows state/county summaries only. It should not be used to add private access details, sensitive layouts, unreviewed exact coordinates, or any non-public enrichment.</p></div>
+        <div className="panel introPanel"><p className="eyebrow">What this is</p><h2>Public records in, reviewed Ledger out.</h2><p>Paste or load a CSV, inspect warnings, preserve source receipts, score source quality, summarize by state/county, and export regional evidence packets for human review.</p></div>
+        <div className="panel introPanel cautionPanel"><p className="eyebrow">What this is not</p><h2>Not a targeting map.</h2><p>The regional view and evidence packet intentionally use state/county summaries. They should not include private access details, sensitive layouts, unreviewed exact coordinates, or non-public enrichment.</p></div>
       </section>
 
       <section className="cards"><Stat label="Records" value={records.length} /><Stat label="Regions" value={regionalSummaries.length} /><Stat label="Canonical" value={canonicalRecords.length} /><Stat label="Receipts" value={records.reduce((sum, record) => sum + record.receipts.length, 0)} /><Stat label="Avg quality" value={`${averageQuality}%`} /><Stat label="Needs review" value={reviewRecords.length} /><Stat label="Import batches" value={importHistory.length} /></section>
       <section className="panel walkthrough"><div><p className="eyebrow">How to use this safely</p><h2>Four-step public review flow</h2></div><div className="stepGrid">{safeUseSteps.map((step, index) => <article key={step.title} className="stepCard"><span>{index + 1}</span><h3>{step.title}</h3><p>{step.body}</p></article>)}</div></section>
 
       <section className="panel regionalView">
-        <div className="panelHeader"><div><p className="eyebrow">v1.5 Map-Safe Regional View</p><h2>Regional review without exact coordinates</h2><p className="muted">Summarize records by state or county. This is a civic review table, not a facility locator map.</p></div><div className="heroActions"><select value={regionMode} onChange={(event) => { setRegionMode(event.target.value as RegionMode); setSelectedRegionKey(""); }}><option value="state">State summary</option><option value="county">County summary</option></select><button onClick={exportRegionalSummary}>Export Regional Summary</button></div></div>
-        <div className="regionalSafety"><strong>Map-safe boundary:</strong><span>No exact markers, no facility layouts, no private access details, no non-public enrichment. Regions are grouped only by public state/county fields.</span></div>
+        <div className="panelHeader"><div><p className="eyebrow">v1.6 Regional Evidence Packet</p><h2>Export review packets for a selected state or county</h2><p className="muted">Build a human-review bundle with regional summary, records, blockers, quality gaps, receipt coverage, and checklist status — without exact markers.</p></div><div className="heroActions"><select value={regionMode} onChange={(event) => { setRegionMode(event.target.value as RegionMode); setSelectedRegionKey(""); }}><option value="state">State summary</option><option value="county">County summary</option></select><button onClick={exportRegionalSummary}>Export Regional Summary</button><button onClick={exportRegionalEvidencePacket} disabled={!selectedRegionalEvidence}>Export Regional Evidence Packet</button></div></div>
+        <div className="regionalSafety"><strong>Map-safe boundary:</strong><span>No exact markers, no facility layouts, no private access details, no non-public enrichment. Evidence packets are grouped only by public state/county fields.</span></div>
         <div className="regionalGrid">
           <div className="regionalTable tableWrap"><table><thead><tr><th>Region</th><th>Records</th><th>Canonical</th><th>Needs review</th><th>Avg quality</th><th>Top gap</th></tr></thead><tbody>{regionalSummaries.map((region) => <tr key={region.key} onClick={() => selectRegion(region)} className={region.key === selectedRegion?.key ? "selected" : ""}><td><strong>{region.label}</strong><small>{region.digest}</small></td><td>{region.recordCount}</td><td>{region.canonicalCount}</td><td>{region.needsReviewCount}</td><td><span className={bandChipClass(region.averageQuality >= 80 ? "strong" : region.averageQuality >= 60 ? "moderate" : region.averageQuality >= 40 ? "weak" : "blocked")}>{region.averageQuality}%</span></td><td>{region.topGaps[0] ? `${region.topGaps[0].gap} (${region.topGaps[0].count})` : "no major gaps"}</td></tr>)}</tbody></table></div>
-          {selectedRegion && <aside className="regionCard"><p className="eyebrow">Selected region</p><h3>{selectedRegion.label}</h3><div className="miniGrid"><Stat label="Records" value={selectedRegion.recordCount} /><Stat label="Canonical" value={selectedRegion.canonicalCount} /><Stat label="Quality" value={`${selectedRegion.averageQuality}%`} /></div><h4>Quality bands</h4><div className="bandRow">{qualityBands.map((band) => <span key={band} className={bandChipClass(band)}>{band}: {selectedRegion.qualityBands[band]}</span>)}</div><h4>Status counts</h4><div className="bandRow">{validStatuses.map((status) => <span key={status} className="chip info">{status}: {selectedRegion.statusCounts[status]}</span>)}</div><h4>Top review gaps</h4>{selectedRegion.topGaps.length ? <ul>{selectedRegion.topGaps.map((gap) => <li key={gap.gap}>{gap.gap} — {gap.count}</li>)}</ul> : <p className="okText">No major regional gaps detected.</p>}<p className="muted">{selectedRegion.safetyNote}</p></aside>}
+          {selectedRegion && selectedRegionalEvidence && <aside className="regionCard evidenceCard"><p className="eyebrow">Selected regional packet</p><h3>{selectedRegion.label}</h3><div className="miniGrid"><Stat label="Records" value={selectedRegion.recordCount} /><Stat label="Canonical" value={selectedRegion.canonicalCount} /><Stat label="Quality" value={`${selectedRegion.averageQuality}%`} /></div><div className="evidenceDigest"><strong>Packet digest</strong><span>{selectedRegionalEvidence.digest}</span></div><h4>Receipt coverage</h4><div className="bandRow"><span className="chip info">receipts: {selectedRegionalEvidence.receiptCoverage.totalReceipts}</span><span className="chip info">records with receipts: {selectedRegionalEvidence.receiptCoverage.recordsWithReceipts}</span><span className="chip info">public-link coverage: {selectedRegionalEvidence.receiptCoverage.publicLinkCoverage}%</span></div><h4>Review checklist</h4><div className="checklistGrid">{selectedRegionalEvidence.reviewChecklist.map((item) => <div key={item.id} className="checklistItem"><span className={checklistChipClass(item.status)}>{item.status}</span><strong>{item.label}</strong><small>{item.detail}</small></div>)}</div><h4>Top review gaps</h4>{selectedRegion.topGaps.length ? <ul>{selectedRegion.topGaps.map((gap) => <li key={gap.gap}>{gap.gap} — {gap.count}</li>)}</ul> : <p className="okText">No major regional gaps detected.</p>}<h4>Human prompts</h4><ul>{selectedRegionalEvidence.humanReviewPrompts.map((prompt) => <li key={prompt}>{prompt}</li>)}</ul><p className="muted">{selectedRegion.safetyNote}</p></aside>}
         </div>
       </section>
 
