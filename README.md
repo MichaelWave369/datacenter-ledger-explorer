@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, and canonical export packets.
 
 ## Live app
 
@@ -33,6 +33,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v2.1 promotion audit timeline
 - v2.2 canonical diff + change review
 - v2.3 change approval queue
+- v2.4 approval role profiles
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, and session restore
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - approve/reject decisions with reviewer notes
@@ -46,6 +48,20 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - GitHub Pages deploy workflow
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.4 approval role profiles
+
+v2.4 adds a local governance layer for review actions:
+
+- active reviewer name and role selector
+- role profiles for `viewer`, `data_reviewer`, `source_reviewer`, `regional_reviewer`, `publisher`, and `admin`
+- role permissions for import, receipt editing, change submission, approval/rejection, reviewed markers, promotion, public brief export, regional packet export, canonical export, and session restore
+- visible role gates showing pass/block status for major actions
+- role metadata in local sessions, public briefs, regional packets, approval requests, change receipts, promotion receipts, ledger exports, canonical exports, and audit timelines
+- approval is still local-first: a role gate is a review safeguard, not identity proof or security authentication
+- export `DataCenterLedger.RoleProfile.v2.4`
+
+Role profiles do not prove a source is true, do not authenticate a person, do not grant access to private systems, and do not make private or sensitive infrastructure details safe to publish.
 
 ## v2.3 change approval queue
 
@@ -117,37 +133,3 @@ Promotion still does not prove a record is true. It only records that the local 
 npm install
 npm run dev
 ```
-
-## Typecheck and build
-
-```bash
-npm run typecheck
-npm run build
-```
-
-## CSV import columns
-
-The starter CSV parser accepts normalized rows with columns such as:
-
-```csv
-id,name,operator,status,state,county,city,lat,lon,capacity_mw,sqft,confidence,source,source_type,source_url,source_claim,retrieved_at
-```
-
-See `/data/normalized-template.csv`.
-
-## Data-source posture
-
-Good public sources may include:
-
-- PNNL / IM3 Open Source Data Center Atlas
-- Epoch AI Frontier Data Centers dataset
-- public permits
-- public utility filings
-- public operator announcements
-- public county or state records
-
-Always preserve source receipts. Do not silently convert claims into facts.
-
-## License
-
-MIT License. See [`LICENSE`](./LICENSE).
