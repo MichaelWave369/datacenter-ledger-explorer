@@ -116,6 +116,12 @@ a { color: #90ffc7; }
   color: #bdd4ed;
   overflow-wrap: anywhere;
 }
+.globalWarnings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+}
 .previewTable { max-height: 420px; }
 .previewTable .chip {
   margin: 0.14rem;
