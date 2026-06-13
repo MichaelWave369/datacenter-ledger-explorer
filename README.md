@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, canonical change receipts, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, and canonical export packets.
 
 ## Live app
 
@@ -32,9 +32,11 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v2.0 canonical review mode
 - v2.1 promotion audit timeline
 - v2.2 canonical diff + change review
+- v2.3 change approval queue
 - selected-record before/after change diff
-- change reason requirement before applying record edits
-- local change receipts with quality and canonical gate deltas
+- pending approval requests before workspace mutation
+- approve/reject decisions with reviewer notes
+- local change receipts with approval linkage
 - selected-record audit timeline export
 - checklist-backed promotion receipts
 - record and region public brief exports
@@ -44,6 +46,23 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - GitHub Pages deploy workflow
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.3 change approval queue
+
+v2.3 prevents proposed changes from silently overwriting the workspace:
+
+- selected-record edits create a pending `ChangeApprovalRequest`
+- approval requests preserve before/after record snapshots
+- approval requests include field deltas, impact level, source-quality snapshots, and canonical blocker snapshots
+- submit is blocked until there is at least one field delta and a reviewer reason
+- a selected record can only have one pending approval at a time
+- approving a request applies the change and creates a local `ChangeReceipt`
+- rejecting a request records a decision note without changing the record
+- approval events appear in the selected-record audit timeline
+- export `DataCenterLedger.ChangeApprovalQueue.v2.3`
+- export `DataCenterLedger.PendingChangeReview.v2.3`
+
+Approval is still a local review workflow. It does not prove a record is true, does not validate a public source automatically, and must not be used to publish non-public or sensitive infrastructure details.
 
 ## v2.2 canonical diff + change review
 
