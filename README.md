@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, and canonical export packets.
 
 ## Live app
 
@@ -25,12 +25,14 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v1.3 receipt editor workbench
 - v1.4 source quality scoreboard
 - v1.5 map-safe regional view
+- v1.6 regional evidence packet
 - paste/upload CSV preview before commit
 - batch IDs and import history
 - selected-record source receipt editor
 - receipt validation and receipt edit history
 - source-quality reports and export packets
 - state/county regional summaries without exact coordinates
+- selected-region evidence packets with checklist review
 - receipt-backed records
 - canonical / non-canonical filtering
 - JSON export packets
@@ -39,6 +41,20 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public launch onboarding and safe-use walkthrough
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v1.6 regional evidence packet
+
+v1.6 turns the selected map-safe state/county region into a reviewable evidence bundle:
+
+- export `DataCenterLedger.RegionalEvidencePacket.v1.6`
+- include the selected regional summary
+- include all regional records with canonical blockers, review warnings, source quality, and receipts
+- calculate receipt coverage and public-link coverage
+- generate a human review checklist for map-safe boundary, receipt coverage, public links, source quality, high-impact claims, unresolved warnings, location precision, and blocked quality records
+- include human review prompts before public/canonical use
+- include the selected regional evidence packet in the full Ledger export
+
+The evidence packet is a review aid, not proof that the underlying claims are true. It should stay at state/county precision and should not include exact facility markers, private access details, sensitive layouts, or non-public enrichment.
 
 ## v1.5 map-safe regional view
 
