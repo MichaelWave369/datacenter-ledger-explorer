@@ -38,6 +38,45 @@ When another reviewer decides the request, the app records:
 
 Approved requests apply the record change and create a change receipt. Rejected requests keep the decision receipt and leave the record unchanged.
 
+## Two-person gate snapshot
+
+Each approval or rejection decision can include a `TwoPersonGateSnapshot`:
+
+- action: `approve_change` or `reject_change`
+- allowed
+- submitter
+- submitterRole
+- decider
+- deciderRole
+- differentReviewer
+- differentRole
+- roleAllowed
+- detail
+- digest
+
+The gate passes only when the decider has the needed role permission and both separation checks pass.
+
+## Export schemas
+
+v2.5 updates the local export family:
+
+- `DataCenterLedger.Workspace.v2.5`
+- `DataCenterLedger.CanonicalRegistry.v2.5`
+- `DataCenterLedger.ChangeApprovalQueue.v2.5`
+- `DataCenterLedger.RoleProfile.v2.5`
+- `DataCenterLedger.LocalReviewSession.v2.5`
+
+These exports preserve the two-person policy, approval queue, change receipts, active reviewer role, and role gate snapshots.
+
+## Suggested review flow
+
+1. A reviewer selects a record and edits proposed fields.
+2. The reviewer writes a change reason and submits the change for approval.
+3. Another reviewer switches to a different reviewer name and different role with approve/reject permission.
+4. The second reviewer reviews the deltas, source-quality impact, blockers, and public-data boundary.
+5. The second reviewer approves or rejects with a decision note.
+6. Approved changes mutate the local workspace and create a receipt; rejected changes remain as decision history.
+
 ## Safety boundary
 
 The two-person rule does not mean:
