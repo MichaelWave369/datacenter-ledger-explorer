@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, and canonical export packets.
 
 ## Live app
 
@@ -28,23 +28,39 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v1.6 regional evidence packet
 - v1.7 local review session save/load
 - v1.8 review queue + task board
+- v1.9 public brief generator
 - paste/upload CSV preview before commit
-- batch IDs and import history
 - selected-record source receipt editor
-- receipt validation and receipt edit history
-- source-quality reports and export packets
 - state/county regional summaries without exact coordinates
 - selected-region evidence packets with checklist review
 - full local workspace session export/import
 - generated and manual local review tasks
+- record and region public brief exports
 - receipt-backed records
 - canonical / non-canonical filtering
-- JSON export packets
+- JSON and Markdown export packets
 - public-data safety docs
 - GitHub Pages deploy workflow
-- public launch onboarding and safe-use walkthrough
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v1.9 public brief generator
+
+v1.9 turns selected Ledger work into a human-readable public review brief:
+
+- generate a selected-record brief
+- generate a selected-region brief
+- export `DataCenterLedger.PublicBrief.v1.9` as JSON
+- export a Markdown brief for easy sharing or review
+- include public safety boundary language
+- include review-only / not-proof language
+- summarize claims under review
+- list source receipts and public links where present
+- list unresolved gaps and canonical blockers
+- include source quality or regional quality context
+- avoid exact-coordinate or targeting-map presentation
+
+Public briefs are communication aids. They do not prove that a record is true, do not claim completeness, and do not replace source review.
 
 ## v1.8 review queue + task board
 
@@ -56,8 +72,6 @@ v1.8 turns review gaps into local follow-up tasks:
 - lets reviewers add manual follow-up tasks for the selected record
 - filters tasks by status and category
 - exports `DataCenterLedger.ReviewQueue.v1.8`
-- includes task state and manual tasks inside `DataCenterLedger.LocalReviewSession.v1.8`
-- includes review tasks in Ledger, canonical, launch, selected receipt, and selected regional evidence exports
 
 The review queue is a local workflow aid. It does not prove that records are true and does not replace human review.
 
@@ -73,79 +87,6 @@ v1.7 lets a reviewer pause, archive, share, and restore a full local workspace w
 - keep all session handling browser-local with no hidden network calls
 
 Session packets can contain reviewer notes and source links. Review them before sharing publicly.
-
-## v1.6 regional evidence packet
-
-v1.6 turns the selected map-safe state/county region into a reviewable evidence bundle:
-
-- export `DataCenterLedger.RegionalEvidencePacket.v1.6`
-- include the selected regional summary
-- include all regional records with canonical blockers, review warnings, source quality, and receipts
-- calculate receipt coverage and public-link coverage
-- generate a human review checklist for map-safe boundary, receipt coverage, public links, source quality, high-impact claims, unresolved warnings, location precision, and blocked quality records
-- include human review prompts before public/canonical use
-- include the selected regional evidence packet in the full Ledger export
-
-The evidence packet is a review aid, not proof that the underlying claims are true. It should stay at state/county precision and should not include exact facility markers, private access details, sensitive layouts, or non-public enrichment.
-
-## v1.5 map-safe regional view
-
-v1.5 adds a regional summary layer without turning the app into a targeting map:
-
-- summarize records by state or county
-- show record counts, canonical counts, needs-review counts, receipt counts, and average quality
-- show quality-band counts for each region
-- show status counts and precision counts by region
-- surface top regional review gaps
-- select a region to filter the working queue
-- export `DataCenterLedger.MapSafeRegionalSummary.v1.5`
-- include regional summaries in Ledger, canonical, launch, and selected receipt exports
-
-The regional view does not display exact coordinates, facility markers, access details, sensitive layouts, or non-public enrichment. It is a public-data review summary, not a facility locator.
-
-## v1.4 source quality scoreboard
-
-v1.4 adds a visible source-quality layer for every record:
-
-- scores records from 0-100
-- assigns quality bands: `strong`, `moderate`, `weak`, or `blocked`
-- scores receipt count, source-type diversity, public-link coverage, recency, high-impact claim coverage, confidence, and unresolved warning count
-- adds a source-quality scoreboard above the import workbench
-- adds a selected-record quality report in the drawer
-- adds source quality to the working registry table
-- exports `DataCenterLedger.SourceQualityScoreboard.v1.4`
-- includes source-quality reports in Ledger, canonical, launch, and selected receipt exports
-- adds `source quality below 65` to the canonical blocker list
-
-The score is a review aid, not a truth claim. A high score means the record has a stronger receipt posture; it does not prove the underlying claim is true.
-
-## v1.3 receipt editor workbench
-
-v1.3 lets reviewers improve a selected record after import without leaving the browser:
-
-- add a source receipt directly to the selected record
-- capture source name, source type, public URL, retrieved date, confidence, and claim text
-- validate receipt drafts before adding them
-- warn on missing public URLs, short claim text, and vague source type
-- block receipts with missing source name, missing claim text, invalid date, or invalid URL
-- automatically resolve matching review warnings when a new receipt supports them
-- record receipt edit history with deterministic digests
-- export selected-record receipt packets
-- export full receipt edit history packets
-
-## v1.2 import review workbench
-
-v1.2 makes imports safer and more reviewable before anything enters the Ledger:
-
-- paste CSV or load a CSV file into a local workbench
-- preview normalized Ledger rows before commit
-- generate a deterministic import batch ID and preview digest
-- detect duplicate record IDs already in the workspace
-- detect duplicate IDs inside the incoming batch
-- warn on missing source names, missing counties/cities, unsupported status/source types, exact-coordinate columns, and high-impact MW claims
-- block commit when structural issues are present, such as missing state or duplicate IDs
-- export import preview packets and import history packets
-- preserve source URL, source claim, retrieved date, confidence, and batch ID on receipts
 
 ## Run locally
 
