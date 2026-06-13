@@ -7,5 +7,6 @@ import "./v20-canonical-review.css";
 import "./v21-audit-timeline.css";
 import "./v22-change-review.css";
 import "./v23-change-approval.css";
+import "./v24-role-profiles.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
