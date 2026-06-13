@@ -9,17 +9,19 @@ function syncVisibleVersion() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let node = walker.nextNode();
 
-  while (node) {
-    LEGACY_VERSIONS.forEach((legacyVersion) => {
-      if (node.nodeValue?.includes(legacyVersion)) {
-        node.nodeValue = replaceEvery(node.nodeValue, legacyVersion, RELEASE_VERSION);
-      }
-      const legacyUpper = `V${legacyVersion}`;
-      const releaseUpper = `V${RELEASE_VERSION}`;
-      if (node.nodeValue?.includes(legacyUpper)) {
-        node.nodeValue = replaceEvery(node.nodeValue, legacyUpper, releaseUpper);
-      }
-    });
+  while (node !== null) {
+    const currentNode = node;
+    let nextValue = currentNode.nodeValue ?? "";
+
+    for (const legacyVersion of LEGACY_VERSIONS) {
+      nextValue = replaceEvery(nextValue, legacyVersion, RELEASE_VERSION);
+      nextValue = replaceEvery(nextValue, `V${legacyVersion}`, `V${RELEASE_VERSION}`);
+    }
+
+    if (currentNode.nodeValue !== nextValue) {
+      currentNode.nodeValue = nextValue;
+    }
+
     node = walker.nextNode();
   }
 
