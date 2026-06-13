@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, and canonical export packets.
 
 ## Live app
 
@@ -35,7 +35,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v2.3 change approval queue
 - v2.4 approval role profiles
 - v2.5 two-person approval rule
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, and session restore
+- v2.6 governance release manifest
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, and release manifests
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -50,6 +51,20 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - GitHub Pages deploy workflow
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.6 governance release manifest
+
+v2.6 adds a one-click local release packet for governance review:
+
+- export `DataCenterLedger.GovernanceReleaseManifest.v2.6`
+- bundle app version, release name, reviewer name, active role, role profile, and release role gate
+- bundle the two-person approval policy and public safety boundary
+- include release readiness with blockers, warnings, canonical count, pending approvals, public brief count, promotion receipts, change receipts, and average source quality
+- include canonical records, needs-review records, source-quality reports, regional summaries, public briefs, promotion receipts, change receipts, approval queue, and selected-record audit timeline
+- preserve a deterministic manifest digest for comparison across exports
+- keep the manifest local-first with no backend and no hidden network calls
+
+The governance release manifest is a review packet only. It does not certify truth, completeness, legal authorization, security clearance, or permission to publish private or sensitive facility details.
 
 ## v2.5 two-person approval rule
 
@@ -149,4 +164,10 @@ Promotion still does not prove a record is true. It only records that the local 
 ```bash
 npm install
 npm run dev
+```
+
+## Build
+
+```bash
+npm run build
 ```
