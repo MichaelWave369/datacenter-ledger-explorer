@@ -1,0 +1,2 @@
+id,state,state_abb,county,operator,name,sqft,lat,lon,type
+pnnl-example-001,Virginia,VA,Loudoun County,Unknown,Example PNNL-style Record,0,,,point
