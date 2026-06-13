@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, and canonical export packets.
 
 ## Live app
 
@@ -24,11 +24,13 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v1.2 import review workbench
 - v1.3 receipt editor workbench
 - v1.4 source quality scoreboard
+- v1.5 map-safe regional view
 - paste/upload CSV preview before commit
 - batch IDs and import history
 - selected-record source receipt editor
 - receipt validation and receipt edit history
 - source-quality reports and export packets
+- state/county regional summaries without exact coordinates
 - receipt-backed records
 - canonical / non-canonical filtering
 - JSON export packets
@@ -37,6 +39,21 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public launch onboarding and safe-use walkthrough
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v1.5 map-safe regional view
+
+v1.5 adds a regional summary layer without turning the app into a targeting map:
+
+- summarize records by state or county
+- show record counts, canonical counts, needs-review counts, receipt counts, and average quality
+- show quality-band counts for each region
+- show status counts and precision counts by region
+- surface top regional review gaps
+- select a region to filter the working queue
+- export `DataCenterLedger.MapSafeRegionalSummary.v1.5`
+- include regional summaries in Ledger, canonical, launch, and selected receipt exports
+
+The regional view does not display exact coordinates, facility markers, access details, sensitive layouts, or non-public enrichment. It is a public-data review summary, not a facility locator.
 
 ## v1.4 source quality scoreboard
 
