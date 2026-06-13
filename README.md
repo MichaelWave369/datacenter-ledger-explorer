@@ -4,6 +4,10 @@ A local-first React + TypeScript workbench for building a **public-data, receipt
 
 This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, and canonical export packets.
 
+## Live app
+
+https://michaelwave369.github.io/datacenter-ledger-explorer/
+
 ## Public boundary
 
 **Public-data only • No hidden network calls • No private facility discovery • No security-sensitive enrichment**
@@ -21,9 +25,23 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - canonical / non-canonical filtering
 - JSON export packets
 - public-data safety docs
-- CI workflow for typecheck + build
+- GitHub Pages deploy workflow
+- v1.1 public launch onboarding and safe-use walkthrough
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v1.1 public launch sprint
+
+v1.1 makes the live site easier to understand before a user imports data:
+
+- clearer landing copy
+- explicit “what this is / what this is not” panels
+- visible public-data boundary pills
+- sample-data warning
+- four-step safe-use walkthrough
+- demo reset button
+- public launch packet export
+- schema labels updated to `DataCenterLedger.*.v1.1`
 
 ## Run locally
 
@@ -44,7 +62,7 @@ npm run build
 The starter CSV parser accepts normalized rows with columns such as:
 
 ```csv
-id,name,operator,status,state,county,city,lat,lon,capacity_mw,sqft,confidence,source
+id,name,operator,status,state,county,city,lat,lon,capacity_mw,sqft,confidence,source,source_type
 ```
 
 See `/data/normalized-template.csv`.
