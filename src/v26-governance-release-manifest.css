@@ -60,3 +60,76 @@
   opacity: 0.82;
   font-size: 0.92rem;
 }
+
+.manifest-compare-panel {
+  border: 1px solid rgba(125, 211, 252, 0.22);
+}
+
+.manifest-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.manifest-compare-grid label {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  color: var(--muted, #9fb3c8);
+}
+
+.manifest-compare-grid textarea {
+  min-height: 180px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.manifest-diff-output {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.diff-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.diff-columns > div {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.diff-columns strong {
+  color: var(--text, #eef6ff);
+}
+
+.diff-columns span {
+  display: block;
+  padding: 0.4rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--muted, #9fb3c8);
+  font-size: 0.78rem;
+}
+
+.digest-line {
+  padding: 0.7rem 0.85rem;
+  border-radius: 14px;
+  background: rgba(14, 165, 233, 0.08);
+  color: var(--muted, #9fb3c8);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .manifest-compare-grid,
+  .diff-columns {
+    grid-template-columns: 1fr;
+  }
+}
