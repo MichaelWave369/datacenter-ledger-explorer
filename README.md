@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, and canonical export packets.
 
 ## Live app
 
@@ -39,7 +39,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v2.7 manifest compare / release diff
 - v2.8 release signoff packet
 - v2.9 release archive index
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, and release archive exports
+- v3.0 release library mode
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, and release library exports
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -53,7 +54,23 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public-data safety docs
 - GitHub Pages deploy workflow
 
-The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, and release archives. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, and release library lineage. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v3.0 release library mode
+
+v3.0 turns the v2.9 local archive into a release library:
+
+- reads archived governance manifests, manifest diffs, and signoff packets from local browser storage
+- adds release labels and lineage notes
+- records which release supersedes an earlier release
+- shows a public release history table
+- exports `DataCenterLedger.ReleaseLibrary.v3.0`
+- exports `DataCenterLedger.PublicReleaseHistory.v3.0`
+- exports a compare handoff packet for a selected release and the release it supersedes
+- restores an archived release manifest into the v2.8 signoff widget when present
+- keeps all behavior local-only with no backend, no hidden network calls, and no external validation
+
+A release library is a review convenience. It does not verify source truth, certify release readiness, publish records, or authorize sensitive infrastructure disclosure.
 
 ## v2.9 release archive index
 
@@ -70,48 +87,19 @@ v2.9 adds a local release archive widget that stores release artifacts in browse
 
 A release archive index is a local review convenience. It does not verify source truth, certify release readiness, publish records, or authorize sensitive infrastructure disclosure.
 
-## v2.8 release signoff packet
-
-v2.8 adds a local release signoff widget that can sit beside the existing review cockpit:
-
-- paste or load a `DataCenterLedger.GovernanceReleaseManifest` JSON packet
-- optionally paste or load a `DataCenterLedger.ManifestCompare` JSON packet
-- choose a release decision: `approve_release`, `hold_release`, or `needs_more_review`
-- enter final reviewer notes
-- generate a checklist covering manifest presence, schema recognition, readiness, pending approvals, canonical records, diff attachment, two-person policy preservation, reviewer name, and notes
-- export `DataCenterLedger.ReleaseSignoffPacket.v2.8`
-- preserve public-safety boundary and review-only language inside the signoff packet
-- keep the workflow local-only with no backend, no hidden network calls, and no external validation
-
-A release signoff packet records a local review decision. It does not certify truth, completeness, legal authorization, security clearance, or permission to publish private or sensitive infrastructure details.
-
-## v2.7 manifest compare / release diff
-
-v2.7 adds a local compare cockpit for two exported governance release manifests:
-
-- paste or load baseline and candidate `DataCenterLedger.GovernanceReleaseManifest` JSON files
-- compare release names, app versions, readiness state, manifest digests, active roles, canonical records, blockers, warnings, approvals, public briefs, promotion receipts, change receipts, and average source quality
-- export `DataCenterLedger.ManifestCompare.v2.7`
-- add `compare_release_manifests` as a role-gated permission for `publisher` and `admin`
-- keep the compare local-only with no backend, no hidden network calls, and no external validation
-- preserve review-only language inside the diff packet
-
-A manifest diff is a review artifact. It does not certify that either manifest is true, complete, legally authorized, secure, or safe to publish.
-
-## v2.6 governance release manifest
-
-v2.6 adds a one-click local release packet for governance review:
-
-- export `DataCenterLedger.GovernanceReleaseManifest.v2.6`
-- bundle app version, release name, reviewer name, active role, role profile, and release role gate
-- bundle the two-person approval policy and public safety boundary
-- include release readiness with blockers, warnings, canonical count, pending approvals, public brief count, promotion receipts, change receipts, and average source quality
-- include canonical records, needs-review records, source-quality reports, regional summaries, public briefs, promotion receipts, change receipts, approval queue, and selected-record audit timeline
-- preserve a deterministic manifest digest for comparison across exports
-- keep the manifest local-first with no backend and no hidden network calls
-
-The governance release manifest is a review packet only. It does not certify truth, completeness, legal authorization, security clearance, or permission to publish private or sensitive facility details.
-
 ## Safety posture
 
 Use public sources only. Do not use this tool to identify private facility details, collect sensitive coordinates, bypass security controls, or publish unreviewed infrastructure claims.
+
+## Development
+
+```bash
+npm install
+npm run dev
+npm run typecheck
+npm run build
+```
+
+## Deployment
+
+GitHub Pages deploys from `.github/workflows/deploy-pages.yml`.
