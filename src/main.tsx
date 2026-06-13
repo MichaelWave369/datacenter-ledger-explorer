@@ -9,5 +9,6 @@ import "./v22-change-review.css";
 import "./v23-change-approval.css";
 import "./v24-role-profiles.css";
 import "./v25-two-person-rule.css";
+import "./v26-governance-release-manifest.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
