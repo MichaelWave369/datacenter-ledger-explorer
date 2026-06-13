@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, and canonical export packets.
 
 ## Live app
 
@@ -38,7 +38,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v2.6 governance release manifest
 - v2.7 manifest compare / release diff
 - v2.8 release signoff packet
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, and release signoff packets
+- v2.9 release archive index
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, and release archive exports
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -52,7 +53,22 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public-data safety docs
 - GitHub Pages deploy workflow
 
-The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, and release diffs. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, and release archives. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.9 release archive index
+
+v2.9 adds a local release archive widget that stores release artifacts in browser localStorage:
+
+- paste or load `DataCenterLedger.GovernanceReleaseManifest` JSON packets
+- paste or load `DataCenterLedger.ManifestCompare` release diff packets
+- paste or load `DataCenterLedger.ReleaseSignoffPacket` JSON packets
+- filter by artifact kind, decision, release name, schema, or digest
+- export `DataCenterLedger.ReleaseArchiveIndex.v2.9`
+- preserve the original packet payloads alongside searchable metadata
+- send archived manifests or diffs into the v2.8 signoff widget when present
+- keep the archive local-only with no backend, no hidden network calls, and no external validation
+
+A release archive index is a local review convenience. It does not verify source truth, certify release readiness, publish records, or authorize sensitive infrastructure disclosure.
 
 ## v2.8 release signoff packet
 
