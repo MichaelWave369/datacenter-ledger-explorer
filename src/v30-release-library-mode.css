@@ -1,0 +1,120 @@
+.release-library-panel {
+  margin-top: 1.5rem;
+}
+
+.library-controls,
+.library-lineage-editor {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+  margin: 1rem 0;
+}
+
+.library-controls input,
+.library-controls select,
+.library-lineage-editor input,
+.library-lineage-editor textarea {
+  width: 100%;
+}
+
+.library-lineage-editor textarea {
+  min-height: 6rem;
+}
+
+.library-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.library-summary div {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.library-summary strong {
+  display: block;
+  font-size: 1.35rem;
+}
+
+.library-summary span,
+.library-metrics span {
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.library-lineage {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+.lineage-card,
+.library-entry {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.lineage-card strong,
+.lineage-card span,
+.lineage-card em {
+  display: block;
+}
+
+.lineage-card span {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0.35rem 0;
+}
+
+.lineage-card p {
+  color: #cbd5e1;
+  margin-bottom: 0;
+}
+
+.library-table {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.library-entry {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.2fr) minmax(200px, 0.8fr) auto;
+  gap: 1rem;
+  align-items: start;
+}
+
+.library-entry h3 {
+  margin: 0.1rem 0 0.25rem;
+}
+
+.library-entry code {
+  display: inline-block;
+  margin-top: 0.4rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.library-metrics {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.release-library-panel .boundary-note {
+  margin-top: 1rem;
+}
+
+@media (max-width: 820px) {
+  .library-entry {
+    grid-template-columns: 1fr;
+  }
+}
