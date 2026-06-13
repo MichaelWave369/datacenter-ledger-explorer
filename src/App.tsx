@@ -8,6 +8,7 @@ type SourceType = "public_dataset" | "permit" | "utility" | "operator" | "news" 
 type WarningLevel = "info" | "warning" | "blocking";
 
 type Receipt = {
+  receiptId?: string;
   sourceName: string;
   sourceType: SourceType;
   sourceUrl?: string;
@@ -71,7 +72,29 @@ type ImportHistoryItem = {
   digest: string;
 };
 
-const APP_VERSION = "1.2.0";
+type ReceiptDraft = {
+  sourceName: string;
+  sourceType: SourceType;
+  sourceUrl: string;
+  retrievedAt: string;
+  claim: string;
+  confidence: Confidence;
+};
+
+type ReceiptEditHistoryItem = {
+  receiptId: string;
+  recordId: string;
+  recordName: string;
+  addedAt: string;
+  sourceName: string;
+  sourceType: SourceType;
+  confidence: Confidence;
+  resolvedWarnings: string[];
+  remainingWarnings: number;
+  digest: string;
+};
+
+const APP_VERSION = "1.3.0";
 
 const validStatuses: Status[] = ["operating", "planned", "under_construction", "approved", "unknown"];
 const validSourceTypes: SourceType[] = ["public_dataset", "permit", "utility", "operator", "news", "review", "other"];
@@ -92,11 +115,11 @@ const safeUseSteps: SafetyStep[] = [
   },
   {
     title: "Preview before commit",
-    body: "Use the v1.2 import workbench to inspect normalized rows, warnings, source posture, and batch receipts before adding records."
+    body: "Use the import workbench to inspect normalized rows, warnings, source posture, and batch receipts before adding records."
   },
   {
-    title: "Treat every import as a claim",
-    body: "Raw rows enter the Ledger as review candidates. A source receipt explains who said what and when it was retrieved."
+    title: "Attach receipts",
+    body: "Use the v1.3 receipt editor to add source name, type, public link, retrieved date, confidence, and exact claim text."
   },
   {
     title: "Promote slowly",
@@ -184,6 +207,7 @@ const starterRecords: LedgerRecord[] = [
 ];
 
 const nowIso = () => new Date().toISOString();
+const todayInputDate = () => new Date().toISOString().slice(0, 10);
 
 function digest(payload: unknown) {
   const text = JSON.stringify(payload);
@@ -420,6 +444,89 @@ function warningCount(preview: ImportPreview | null, level?: WarningLevel) {
   return level ? warnings.filter((warning) => warning.level === level).length : warnings.length;
 }
 
+function makeEmptyReceiptDraft(): ReceiptDraft {
+  return {
+    sourceName: "",
+    sourceType: "public_dataset",
+    sourceUrl: "",
+    retrievedAt: todayInputDate(),
+    claim: "",
+    confidence: "medium"
+  };
+}
+
+function isHttpUrl(value: string) {
+  if (!value.trim()) return false;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function validateReceiptDraft(draft: ReceiptDraft): ImportWarning[] {
+  const warnings: ImportWarning[] = [];
+  if (!draft.sourceName.trim()) pushWarning(warnings, 0, "blocking", "Source name is required.", "sourceName");
+  if (!draft.claim.trim()) pushWarning(warnings, 0, "blocking", "Claim text is required so reviewers know exactly what the source supports.", "claim");
+  if (draft.claim.trim().length > 0 && draft.claim.trim().length < 18) pushWarning(warnings, 0, "warning", "Claim text is very short; quote or summarize the specific public claim being supported.", "claim");
+  if (!draft.retrievedAt.trim() || new Date(draft.retrievedAt).toString() === "Invalid Date") pushWarning(warnings, 0, "blocking", "Retrieved date must be a valid date.", "retrievedAt");
+  if (!draft.sourceUrl.trim()) pushWarning(warnings, 0, "warning", "No source URL supplied; public links make review and promotion stronger.", "sourceUrl");
+  if (draft.sourceUrl.trim() && !isHttpUrl(draft.sourceUrl)) pushWarning(warnings, 0, "blocking", "Source URL must start with http:// or https://.", "sourceUrl");
+  if (draft.sourceType === "other") pushWarning(warnings, 0, "info", "Source type is other; classify it more specifically if possible.", "sourceType");
+  return warnings;
+}
+
+function buildReceiptFromDraft(draft: ReceiptDraft, record: LedgerRecord, addedAt: string): Receipt {
+  const sourceUrl = draft.sourceUrl.trim();
+  const retrievedDate = new Date(draft.retrievedAt);
+  const receiptId = digest({ recordId: record.id, draft, addedAt });
+  return {
+    receiptId,
+    sourceName: draft.sourceName.trim(),
+    sourceType: draft.sourceType,
+    sourceUrl: sourceUrl || undefined,
+    retrievedAt: retrievedDate.toString() === "Invalid Date" ? addedAt : retrievedDate.toISOString(),
+    claim: draft.claim.trim(),
+    confidence: draft.confidence
+  };
+}
+
+function resolveWarningsAfterReceipt(record: LedgerRecord, receipt: Receipt) {
+  const nextReceiptCount = record.receipts.length + 1;
+  const hasPublicLink = Boolean(receipt.sourceUrl);
+  const resolved: string[] = [];
+
+  const remaining = record.reviewWarnings.filter((warning) => {
+    const lower = warning.toLowerCase();
+    let shouldResolve = false;
+
+    if (lower.includes("missing source") && receipt.sourceName) shouldResolve = true;
+    if ((lower.includes("source_url") || lower.includes("source url") || lower.includes("public link")) && hasPublicLink) shouldResolve = true;
+    if ((lower.includes("second public source") || lower.includes("second independent source") || lower.includes("needs a second public source")) && nextReceiptCount >= 2 && hasPublicLink) shouldResolve = true;
+    if (lower.includes("needs permit source") && receipt.sourceType === "permit") shouldResolve = true;
+    if (lower.includes("needs utility source") && receipt.sourceType === "utility") shouldResolve = true;
+    if (lower.includes("operator confirmation") && receipt.sourceType === "operator") shouldResolve = true;
+    if (lower.includes("imported row needs human review") && receipt.claim.length > 20) shouldResolve = true;
+
+    if (shouldResolve) {
+      resolved.push(warning);
+      return false;
+    }
+
+    return true;
+  });
+
+  const additions: string[] = [];
+  if (!hasPublicLink) additions.push("Newest receipt has no source URL; attach a public link before promotion.");
+  if (receipt.sourceType === "other") additions.push("Newest receipt source type is other; classify it before promotion if possible.");
+
+  return {
+    remaining: Array.from(new Set([...remaining, ...additions])),
+    resolved
+  };
+}
+
 export default function App() {
   const [records, setRecords] = useState<LedgerRecord[]>(starterRecords);
   const [selectedId, setSelectedId] = useState(starterRecords[0].id);
@@ -430,6 +537,8 @@ export default function App() {
   const [importText, setImportText] = useState("");
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [importHistory, setImportHistory] = useState<ImportHistoryItem[]>([]);
+  const [receiptDraft, setReceiptDraft] = useState<ReceiptDraft>(() => makeEmptyReceiptDraft());
+  const [receiptHistory, setReceiptHistory] = useState<ReceiptEditHistoryItem[]>([]);
 
   const selected = records.find((record) => record.id === selectedId) || records[0];
   const states = useMemo(() => Array.from(new Set(records.map((record) => record.state))).sort(), [records]);
@@ -438,6 +547,9 @@ export default function App() {
   const demoRecords = useMemo(() => records.filter((record) => record.id.startsWith("dcl-demo-")), [records]);
   const importWarnings = allPreviewWarnings(importPreview);
   const hasBlockingImport = importWarnings.some((warning) => warning.level === "blocking");
+  const receiptDraftWarnings = useMemo(() => validateReceiptDraft(receiptDraft), [receiptDraft]);
+  const hasBlockingReceiptDraft = receiptDraftWarnings.some((warning) => warning.level === "blocking");
+  const selectedReceiptHistory = receiptHistory.filter((item) => item.recordId === selected.id);
 
   const visibleRecords = useMemo(() => records.filter((record) => {
     const haystack = `${record.name} ${record.operator} ${record.county} ${record.city || ""}`.toLowerCase();
@@ -465,6 +577,47 @@ export default function App() {
       ? { ...item, notes: [...item.notes, note.trim()] }
       : item));
     setNote("");
+  }
+
+  function updateReceiptDraft<K extends keyof ReceiptDraft>(key: K, value: ReceiptDraft[K]) {
+    setReceiptDraft((draft) => ({ ...draft, [key]: value }));
+  }
+
+  function clearReceiptDraft() {
+    setReceiptDraft(makeEmptyReceiptDraft());
+  }
+
+  function addReceiptToSelected() {
+    if (hasBlockingReceiptDraft) return;
+    const addedAt = nowIso();
+    const receipt = buildReceiptFromDraft(receiptDraft, selected, addedAt);
+    const resolution = resolveWarningsAfterReceipt(selected, receipt);
+    const historyItem: ReceiptEditHistoryItem = {
+      receiptId: receipt.receiptId || digest({ receipt, addedAt }),
+      recordId: selected.id,
+      recordName: selected.name,
+      addedAt,
+      sourceName: receipt.sourceName,
+      sourceType: receipt.sourceType,
+      confidence: receipt.confidence,
+      resolvedWarnings: resolution.resolved,
+      remainingWarnings: resolution.remaining.length,
+      digest: digest({ receipt, recordId: selected.id, addedAt, resolvedWarnings: resolution.resolved })
+    };
+
+    setRecords((items) => items.map((item) => item.id === selected.id
+      ? {
+          ...item,
+          receipts: [...item.receipts, receipt],
+          reviewWarnings: resolution.remaining,
+          notes: [
+            ...item.notes,
+            `Receipt ${historyItem.receiptId} added at ${new Date(addedAt).toLocaleString()} from ${receipt.sourceName}. Resolved ${resolution.resolved.length} warning(s).`
+          ]
+        }
+      : item));
+    setReceiptHistory((items) => [historyItem, ...items]);
+    clearReceiptDraft();
   }
 
   function previewImportFromText(origin = "pasted CSV") {
@@ -516,17 +669,20 @@ export default function App() {
     setImportPreview(null);
     setImportText("");
     setImportHistory([]);
+    setReceiptHistory([]);
+    clearReceiptDraft();
   }
 
   function exportLedger() {
     downloadJson("datacenter-ledger-export.json", {
-      schema: "DataCenterLedger.Export.v1.2-import-workbench",
+      schema: "DataCenterLedger.Export.v1.3-receipt-editor",
       generatedAt: nowIso(),
       appVersion: APP_VERSION,
       boundary: publicBoundary,
       importHistory,
+      receiptHistory,
       records,
-      digest: digest({ records, importHistory })
+      digest: digest({ records, importHistory, receiptHistory })
     });
   }
 
@@ -538,7 +694,7 @@ export default function App() {
       blockers: canonicalBlockers(record)
     }));
     downloadJson("datacenter-ledger-canonical.json", {
-      schema: "DataCenterLedger.CanonicalRegistry.v1.2-import-workbench",
+      schema: "DataCenterLedger.CanonicalRegistry.v1.3-receipt-editor",
       generatedAt: nowIso(),
       appVersion: APP_VERSION,
       included,
@@ -549,7 +705,7 @@ export default function App() {
 
   function exportLaunchPacket() {
     downloadJson("datacenter-ledger-public-launch-packet.json", {
-      schema: "DataCenterLedger.PublicLaunchPacket.v1.2",
+      schema: "DataCenterLedger.PublicLaunchPacket.v1.3",
       generatedAt: nowIso(),
       appVersion: APP_VERSION,
       purpose: "Public-safe civic transparency workbench for reviewing U.S. data center records as source-backed claims.",
@@ -561,16 +717,17 @@ export default function App() {
         canonicalRecords: canonicalRecords.length,
         needsReview: reviewRecords.length,
         receipts: records.reduce((sum, record) => sum + record.receipts.length, 0),
+        receiptEdits: receiptHistory.length,
         importBatches: importHistory.length
       },
-      digest: digest({ records, importHistory, publicBoundary, safeUseSteps })
+      digest: digest({ records, importHistory, receiptHistory, publicBoundary, safeUseSteps })
     });
   }
 
   function exportImportPreview() {
     if (!importPreview) return;
     downloadJson("datacenter-ledger-import-preview.json", {
-      schema: "DataCenterLedger.ImportPreview.v1.2",
+      schema: "DataCenterLedger.ImportPreview.v1.3",
       generatedAt: nowIso(),
       appVersion: APP_VERSION,
       preview: importPreview,
@@ -585,7 +742,7 @@ export default function App() {
 
   function exportImportHistory() {
     downloadJson("datacenter-ledger-import-history.json", {
-      schema: "DataCenterLedger.ImportHistory.v1.2",
+      schema: "DataCenterLedger.ImportHistory.v1.3",
       generatedAt: nowIso(),
       appVersion: APP_VERSION,
       importHistory,
@@ -593,11 +750,33 @@ export default function App() {
     });
   }
 
+  function exportSelectedReceiptPacket() {
+    downloadJson("datacenter-ledger-selected-receipts.json", {
+      schema: "DataCenterLedger.SelectedReceiptPacket.v1.3",
+      generatedAt: nowIso(),
+      appVersion: APP_VERSION,
+      selectedRecord: selected,
+      canonicalBlockers: canonicalBlockers(selected),
+      receiptHistory: selectedReceiptHistory,
+      digest: digest({ selected, selectedReceiptHistory })
+    });
+  }
+
+  function exportReceiptHistory() {
+    downloadJson("datacenter-ledger-receipt-history.json", {
+      schema: "DataCenterLedger.ReceiptEditHistory.v1.3",
+      generatedAt: nowIso(),
+      appVersion: APP_VERSION,
+      receiptHistory,
+      digest: digest(receiptHistory)
+    });
+  }
+
   return (
     <main className="shell">
       <header className="hero launchHero">
         <div>
-          <p className="eyebrow">v{APP_VERSION} import workbench sprint • local-first • receipt-backed</p>
+          <p className="eyebrow">v{APP_VERSION} receipt editor sprint • local-first • receipt-backed</p>
           <h1>DataCenterLedger Explorer</h1>
           <p>
             A civic transparency workbench for reviewing public data center records as claims — with receipts,
@@ -620,7 +799,7 @@ export default function App() {
           <h2>Public records in, reviewed Ledger out.</h2>
           <p>
             Paste or load a CSV, preview normalized rows, inspect warnings before commit, preserve source receipts,
-            add local reviewer notes, and export either the full working Ledger or only records that pass the canonical gate.
+            add local reviewer notes, attach new source receipts, and export either the full working Ledger or only records that pass the canonical gate.
           </p>
         </div>
         <div className="panel introPanel cautionPanel">
@@ -637,6 +816,7 @@ export default function App() {
         <Stat label="Records" value={records.length} />
         <Stat label="Canonical" value={canonicalRecords.length} />
         <Stat label="Receipts" value={records.reduce((sum, record) => sum + record.receipts.length, 0)} />
+        <Stat label="Receipt edits" value={receiptHistory.length} />
         <Stat label="Needs review" value={reviewRecords.length} />
         <Stat label="Demo rows" value={demoRecords.length} />
         <Stat label="Import batches" value={importHistory.length} />
@@ -777,7 +957,7 @@ export default function App() {
           </div>
           <div className="tableWrap">
             <table>
-              <thead><tr><th>Name</th><th>State</th><th>Status</th><th>Lifecycle</th><th>Confidence</th><th>Gate</th></tr></thead>
+              <thead><tr><th>Name</th><th>State</th><th>Status</th><th>Lifecycle</th><th>Confidence</th><th>Receipts</th><th>Gate</th></tr></thead>
               <tbody>
                 {visibleRecords.map((record) => {
                   const blockers = canonicalBlockers(record);
@@ -788,6 +968,7 @@ export default function App() {
                       <td>{record.status}</td>
                       <td>{record.lifecycle}</td>
                       <td>{record.confidenceScore}%</td>
+                      <td>{record.receipts.length}</td>
                       <td><span className={blockers.length ? "chip warn" : "chip ok"}>{blockers.length ? "review" : "canonical"}</span></td>
                     </tr>
                   );
@@ -813,14 +994,54 @@ export default function App() {
             : <p className="okText">Record passes the current canonical gate.</p>}
           <button onClick={promoteSelected}>Promote selected locally</button>
 
+          <section className="receiptEditor" aria-label="Receipt editor">
+            <div className="panelHeader compactHeader">
+              <div>
+                <p className="eyebrow">v1.3 Receipt Editor</p>
+                <h3>Add a public source receipt</h3>
+              </div>
+              <button onClick={exportSelectedReceiptPacket}>Export Selected Receipt Packet</button>
+            </div>
+            <div className="receiptGrid">
+              <label>Source name<input value={receiptDraft.sourceName} onChange={(event) => updateReceiptDraft("sourceName", event.target.value)} placeholder="County permit portal, utility filing, operator release..." /></label>
+              <label>Source type<select value={receiptDraft.sourceType} onChange={(event) => updateReceiptDraft("sourceType", event.target.value as SourceType)}>
+                {validSourceTypes.map((sourceType) => <option key={sourceType} value={sourceType}>{sourceType}</option>)}
+              </select></label>
+              <label>Public URL<input value={receiptDraft.sourceUrl} onChange={(event) => updateReceiptDraft("sourceUrl", event.target.value)} placeholder="https://..." /></label>
+              <label>Retrieved date<input type="date" value={receiptDraft.retrievedAt} onChange={(event) => updateReceiptDraft("retrievedAt", event.target.value)} /></label>
+              <label>Confidence<select value={receiptDraft.confidence} onChange={(event) => updateReceiptDraft("confidence", event.target.value as Confidence)}>
+                <option value="high">high</option>
+                <option value="medium">medium</option>
+                <option value="low">low</option>
+              </select></label>
+            </div>
+            <label>Claim supported by this source<textarea value={receiptDraft.claim} onChange={(event) => updateReceiptDraft("claim", event.target.value)} placeholder="Describe the exact claim this public source supports. Example: County agenda item lists an approved data center permit in Polk County." /></label>
+            {receiptDraftWarnings.length > 0 && (
+              <div className="globalWarnings receiptWarnings">
+                {receiptDraftWarnings.map((warning) => (
+                  <span key={`${warning.field}-${warning.message}`} className={`chip ${warning.level === "blocking" ? "danger" : warning.level === "info" ? "info" : "warn"}`}>
+                    {warning.level}: {warning.message}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="importActions">
+              <button onClick={addReceiptToSelected} disabled={hasBlockingReceiptDraft}>Add Receipt to Selected</button>
+              <button onClick={clearReceiptDraft}>Clear Receipt Draft</button>
+              <button onClick={exportReceiptHistory} disabled={receiptHistory.length === 0}>Export Receipt History</button>
+            </div>
+            {selectedReceiptHistory.length > 0 && <p className="muted">{selectedReceiptHistory.length} receipt edit(s) recorded for this selected record.</p>}
+          </section>
+
           <h3>Receipts</h3>
           {selected.receipts.map((receipt, index) => (
-            <div key={`${receipt.sourceName}-${index}`} className="receipt">
+            <div key={receipt.receiptId || `${receipt.sourceName}-${index}`} className="receipt">
               <strong>{receipt.sourceName}</strong>
               <span>{receipt.sourceType} • {receipt.confidence} • {new Date(receipt.retrievedAt).toLocaleDateString()}</span>
               <p>{receipt.claim}</p>
               {receipt.sourceUrl && <a href={receipt.sourceUrl} target="_blank" rel="noreferrer">Open public source</a>}
               {receipt.batchId && <small>Batch: {receipt.batchId}</small>}
+              {receipt.receiptId && <small>Receipt: {receipt.receiptId}</small>}
             </div>
           ))}
 
