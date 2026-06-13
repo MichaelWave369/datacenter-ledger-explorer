@@ -1,10 +1,10 @@
 {
   "name": "datacenter-ledger-explorer",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "private": false,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
