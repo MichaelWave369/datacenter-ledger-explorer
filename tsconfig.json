@@ -17,5 +17,6 @@
     "jsx": "react-jsx"
   },
   "include": ["src"],
+  "exclude": ["src/v39-final-map-layer-export-gate.ts"],
   "references": []
 }
