@@ -1,0 +1,165 @@
+.role-panel {
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+}
+
+.role-grid,
+.gate-grid,
+.permission-grid,
+.checklist-grid,
+.form-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.role-grid,
+.form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.gate-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 1rem;
+}
+
+.permission-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, max-content));
+  margin-top: 1rem;
+}
+
+.permission-chip,
+.role-gate,
+.impact-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.role-gate.allowed,
+.gate-card.allowed {
+  border-color: rgba(34, 197, 94, 0.55);
+}
+
+.role-gate.blocked,
+.gate-card.blocked {
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.gate-card {
+  display: grid;
+  gap: 0.45rem;
+  border-radius: 1rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.boundary-note {
+  margin-top: 1rem;
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+
+.check-card {
+  border-radius: 1rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.check-card.pass {
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.check-card.warning,
+.check-card.needs_human {
+  border-color: rgba(250, 204, 21, 0.55);
+}
+
+.check-card.fail {
+  border-color: rgba(248, 113, 113, 0.65);
+}
+
+.diff-table {
+  display: grid;
+  gap: 0.35rem;
+  margin: 1rem 0;
+}
+
+.diff-table > div {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr 0.8fr;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem;
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.quality-delta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0.8rem 0;
+}
+
+.quality-delta span {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.approval-card,
+.task-card,
+.mini-card,
+.timeline-event {
+  margin-top: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 1rem;
+  padding: 0.9rem;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.approval-card.pending {
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+.approval-card.approved {
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.approval-card.rejected {
+  border-color: rgba(248, 113, 113, 0.55);
+}
+
+.change-fields textarea,
+.session-panel textarea,
+.public-brief-panel textarea {
+  min-height: 5rem;
+}
+
+.fileButton input {
+  display: none;
+}
+
+.fileButton {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.warning {
+  color: #fbbf24;
+}
+
+@media (max-width: 760px) {
+  .diff-table > div {
+    grid-template-columns: 1fr;
+  }
+}
