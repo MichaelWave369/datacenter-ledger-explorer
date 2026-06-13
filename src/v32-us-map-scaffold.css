@@ -1,0 +1,176 @@
+.us-map-panel {
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  background: linear-gradient(135deg, rgba(2, 8, 23, 0.92), rgba(15, 23, 42, 0.9));
+}
+
+.us-map-controls {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin: 1rem 0;
+}
+
+.us-map-controls label,
+.us-map-drawer label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.us-map-controls input,
+.us-map-controls select {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 0.8rem;
+  background: rgba(15, 23, 42, 0.8);
+  color: rgb(226, 232, 240);
+  padding: 0.7rem 0.85rem;
+}
+
+.map-summary {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin: 1rem 0;
+}
+
+.map-summary div {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 0.8rem;
+}
+
+.map-summary strong {
+  display: block;
+  color: rgb(125, 211, 252);
+  font-size: 1.35rem;
+}
+
+.map-summary span {
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.78rem;
+}
+
+.us-map-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(280px, 1.35fr) minmax(260px, 0.85fr);
+}
+
+.us-map-canvas {
+  position: relative;
+  min-height: 430px;
+  overflow: hidden;
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.18), transparent 24%),
+    radial-gradient(circle at 78% 35%, rgba(20, 184, 166, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.95));
+}
+
+.us-map-backdrop {
+  position: absolute;
+  inset: 1rem;
+  border: 1px dashed rgba(148, 163, 184, 0.24);
+  border-radius: 1.1rem;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: rgba(226, 232, 240, 0.35);
+  pointer-events: none;
+}
+
+.us-map-backdrop span {
+  display: block;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.us-map-backdrop small {
+  margin-top: 0.25rem;
+}
+
+.state-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 2.6rem;
+  min-height: 2.6rem;
+  border: 1px solid rgba(125, 211, 252, 0.62);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.24);
+  color: rgb(240, 249, 255);
+  display: grid;
+  place-items: center;
+  gap: 0;
+  cursor: pointer;
+  box-shadow: 0 0 0 0.35rem rgba(14, 165, 233, 0.08);
+}
+
+.state-marker strong {
+  line-height: 1;
+  font-size: 0.92rem;
+}
+
+.state-marker span {
+  font-size: 0.62rem;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.state-marker:hover,
+.state-marker.selected {
+  background: rgba(34, 197, 94, 0.28);
+  border-color: rgba(134, 239, 172, 0.8);
+  box-shadow: 0 0 0 0.48rem rgba(34, 197, 94, 0.12);
+}
+
+.us-map-drawer {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 1.25rem;
+  background: rgba(15, 23, 42, 0.74);
+  padding: 1rem;
+  max-height: 430px;
+  overflow: auto;
+}
+
+.us-map-drawer h3 {
+  margin: 0;
+}
+
+.map-record-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+}
+
+.map-record-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.46);
+  padding: 0.8rem;
+}
+
+.map-record-card h4,
+.map-record-card p {
+  margin: 0.2rem 0;
+}
+
+.map-record-card code {
+  display: block;
+  margin-top: 0.45rem;
+  color: rgba(191, 219, 254, 0.9);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .us-map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .us-map-canvas,
+  .us-map-drawer {
+    min-height: 320px;
+  }
+}
