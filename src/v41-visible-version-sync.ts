@@ -29,3 +29,5 @@ requestAnimationFrame(syncV41VisibleVersionOnce);
 setTimeout(syncV41VisibleVersionOnce, 250);
 setTimeout(syncV41VisibleVersionOnce, 1000);
 setTimeout(syncV41VisibleVersionOnce, 2000);
+setTimeout(syncV41VisibleVersionOnce, 3000);
+setTimeout(syncV41VisibleVersionOnce, 5000);
