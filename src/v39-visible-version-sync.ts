@@ -1,4 +1,6 @@
-export {};
+import "./v40-final-map-layer-viewer-integration.css";
+import "./v40-final-map-layer-viewer-integration";
+import "./v40-visible-version-sync";
 
 const V39_RELEASE_VERSION = "3.9.0";
 const V39_LEGACY_VERSIONS = ["3.8.0", "V3.8.0"];
