@@ -81,31 +81,43 @@ a { color: #90ffc7; }
 .stepCard { border: 1px solid rgba(159,205,255,0.14); border-radius: 18px; padding: 1rem; background: rgba(0,0,0,0.12); }
 .stepCard span { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 999px; background: rgba(144,255,199,0.12); color: #90ffc7; font-weight: 800; }
 .stepCard h3 { margin: 0.8rem 0 0.35rem; }
+.regionalView {
+  margin: 1rem 0;
+  border-color: rgba(114,185,255,0.22);
+  background: linear-gradient(135deg, rgba(75,145,255,0.08), rgba(144,255,199,0.045));
+}
+.regionalSafety {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 1rem 0;
+  padding: 0.9rem;
+  border: 1px solid rgba(255,215,110,0.18);
+  border-radius: 16px;
+  background: rgba(255,215,110,0.06);
+  color: #bdd4ed;
+}
+.regionalSafety strong { color: #ffd76e; white-space: nowrap; }
+.regionalGrid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.75fr); gap: 1rem; align-items: start; }
+.regionalTable { max-height: 520px; border-radius: 16px; background: rgba(0,0,0,0.12); }
+.regionCard {
+  border: 1px solid rgba(159,205,255,0.18);
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(0,0,0,0.16);
+}
+.regionCard h3 { margin: 0 0 0.6rem; }
+.regionCard h4 { margin: 0.9rem 0 0.35rem; color: #9fcfff; }
+.bandRow { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0 0.7rem; }
 .qualityScoreboard { margin: 1rem 0; border-color: rgba(144,255,199,0.22); background: linear-gradient(135deg, rgba(144,255,199,0.065), rgba(75,145,255,0.055)); }
 .qualitySummary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin: 1rem 0; }
 .qualityBars { display: grid; gap: 0.65rem; }
-.qualityBar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0.8rem;
-  width: 100%;
-  padding: 0.85rem;
-  border-radius: 16px;
-  text-align: left;
-  background: rgba(0,0,0,0.15);
-}
+.qualityBar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 0.8rem; width: 100%; padding: 0.85rem; border-radius: 16px; text-align: left; background: rgba(0,0,0,0.15); }
 .qualityBar span { min-width: 0; }
 .qualityBar strong, .qualityBar small { display: block; }
 .qualityBar small { color: #9fb3c8; margin-top: 0.2rem; }
 .qualityBar b { font-size: 1.2rem; }
-.sourceQualityCard {
-  margin: 1rem 0;
-  padding: 1rem;
-  border: 1px solid rgba(159,205,255,0.18);
-  border-radius: 18px;
-  background: rgba(0,0,0,0.15);
-}
+.sourceQualityCard { margin: 1rem 0; padding: 1rem; border: 1px solid rgba(159,205,255,0.18); border-radius: 18px; background: rgba(0,0,0,0.15); }
 .sourceQualityCard h3 { margin: 0; }
 .sourceQualityCard h4 { margin: 0.9rem 0 0.25rem; color: #9fcfff; }
 .sourceQualityCard small { color: #708ba7; overflow-wrap: anywhere; }
@@ -152,6 +164,7 @@ a { color: #90ffc7; }
   .walkthrough { grid-template-columns: 1fr; }
   .stepGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .previewSummary, .qualitySummary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .regionalGrid { grid-template-columns: 1fr; }
 }
 @media (max-width: 980px) {
   .hero, .grid, .launchGrid { grid-template-columns: 1fr; display: grid; }
@@ -164,5 +177,6 @@ a { color: #90ffc7; }
   .hero, .panel { padding: 1rem; border-radius: 18px; }
   .cards, .miniGrid, .toolbar, .stepGrid, .previewSummary, .receiptGrid, .qualitySummary, .qualityDetails { grid-template-columns: 1fr; }
   .qualityBar { grid-template-columns: 1fr; }
+  .regionalSafety { flex-direction: column; }
   .sampleNotice { align-items: flex-start; flex-direction: column; }
 }
