@@ -1,5 +1,5 @@
-const RELEASE_VERSION = "2.9.0";
-const LEGACY_VERSIONS = ["2.7.0", "2.8.0"];
+const RELEASE_VERSION = "3.0.0";
+const LEGACY_VERSIONS = ["2.7.0", "2.8.0", "2.9.0"];
 
 function replaceEvery(value: string, searchValue: string, replacement: string) {
   return value.split(searchValue).join(replacement);
