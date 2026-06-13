@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, and canonical export packets.
 
 ## Live app
 
@@ -37,7 +37,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v2.5 two-person approval rule
 - v2.6 governance release manifest
 - v2.7 manifest compare / release diff
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, and release diff exports
+- v2.8 release signoff packet
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, and release signoff packets
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -51,7 +52,22 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public-data safety docs
 - GitHub Pages deploy workflow
 
-The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, and release diffs. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.8 release signoff packet
+
+v2.8 adds a local release signoff widget that can sit beside the existing review cockpit:
+
+- paste or load a `DataCenterLedger.GovernanceReleaseManifest` JSON packet
+- optionally paste or load a `DataCenterLedger.ManifestCompare` JSON packet
+- choose a release decision: `approve_release`, `hold_release`, or `needs_more_review`
+- enter final reviewer notes
+- generate a checklist covering manifest presence, schema recognition, readiness, pending approvals, canonical records, diff attachment, two-person policy preservation, reviewer name, and notes
+- export `DataCenterLedger.ReleaseSignoffPacket.v2.8`
+- preserve public-safety boundary and review-only language inside the signoff packet
+- keep the workflow local-only with no backend, no hidden network calls, and no external validation
+
+A release signoff packet records a local review decision. It does not certify truth, completeness, legal authorization, security clearance, or permission to publish private or sensitive infrastructure details.
 
 ## v2.7 manifest compare / release diff
 
@@ -79,62 +95,6 @@ v2.6 adds a one-click local release packet for governance review:
 - keep the manifest local-first with no backend and no hidden network calls
 
 The governance release manifest is a review packet only. It does not certify truth, completeness, legal authorization, security clearance, or permission to publish private or sensitive facility details.
-
-## v2.5 two-person approval rule
-
-v2.5 adds local separation-of-duty gates to the change approval queue:
-
-- the submitter of a proposed change cannot approve or reject that same request
-- the decision reviewer must use a different active role from the submitter role
-- `admin` does not bypass the two-person separation rule
-- pending approval requests preserve requester name, requester role, field deltas, before/after snapshots, quality snapshots, canonical blockers, submitter role gate, and policy text
-- approve/reject decisions preserve decision reviewer, decision role, role permission gate, two-person gate result, note, timestamp, and digest
-- approved requests apply the record change and create a local `ChangeReceipt`
-- rejected requests preserve the decision receipt and leave the record unchanged
-- exports include `DataCenterLedger.ChangeApprovalQueue.v2.5`, `DataCenterLedger.Workspace.v2.5`, `DataCenterLedger.CanonicalRegistry.v2.5`, and `DataCenterLedger.RoleProfile.v2.5`
-
-The two-person rule is a local governance safeguard. It is not authentication, not legal authorization, not proof that source data is true, and not permission to publish private or sensitive infrastructure details.
-
-## v2.4 approval role profiles
-
-v2.4 adds a local governance layer for review actions:
-
-- active reviewer name and role selector
-- role profiles for `viewer`, `data_reviewer`, `source_reviewer`, `regional_reviewer`, `publisher`, and `admin`
-- role permissions for import, receipt editing, change submission, approval/rejection, reviewed markers, promotion, public brief export, regional packet export, canonical export, and session restore
-- visible role gates showing pass/block status for major actions
-- role metadata in local sessions, public briefs, regional packets, approval requests, change receipts, promotion receipts, ledger exports, canonical exports, and audit timelines
-- approval is still local-first: a role gate is a review safeguard, not identity proof or security authentication
-- export `DataCenterLedger.RoleProfile.v2.4`
-
-Role profiles do not prove a source is true, do not authenticate a person, do not grant access to private systems, and do not make private or sensitive infrastructure details safe to publish.
-
-## v2.3 change approval queue
-
-v2.3 prevents proposed changes from silently overwriting the workspace:
-
-- selected-record edits create a pending `ChangeApprovalRequest`
-- approval requests preserve before/after record snapshots
-- approval requests include field deltas, impact level, source-quality snapshots, and canonical blocker snapshots
-- submit is blocked until there is at least one field delta and a reviewer reason
-- a selected record can only have one pending approval at a time
-- approving a request applies the change and creates a local `ChangeReceipt`
-- rejecting a request records a decision note without changing the record
-- approval events appear in the selected-record audit timeline
-- export `DataCenterLedger.ChangeApprovalQueue.v2.3`
-- export `DataCenterLedger.PendingChangeReview.v2.3`
-
-Approval is still a local review workflow. It does not prove a record is true, does not validate a public source automatically, and must not be used to publish non-public or sensitive infrastructure details.
-
-## v2.2 canonical diff + change review
-
-v2.2 protects the workspace from silent drift when a selected record changes:
-
-- edit a selected record in a protected change-review cockpit
-- preview before/after field deltas before applying changes
-- require a reviewer reason before applying a change
-- create local change receipts with deterministic digests
-- preserve source-quality and canonical-blocker snapshots before and after the change
 
 ## Safety posture
 
