@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, canonical change receipts, and canonical export packets.
 
 ## Live app
 
@@ -31,23 +31,36 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v1.9 public brief generator
 - v2.0 canonical review mode
 - v2.1 promotion audit timeline
-- paste/upload CSV preview before commit
-- selected-record source receipt editor
-- state/county regional summaries without exact coordinates
-- selected-region evidence packets with checklist review
-- full local workspace session export/import
-- generated and manual local review tasks
-- record and region public brief exports
-- checklist-backed promotion receipts
+- v2.2 canonical diff + change review
+- selected-record before/after change diff
+- change reason requirement before applying record edits
+- local change receipts with quality and canonical gate deltas
 - selected-record audit timeline export
-- canonical review packets
-- receipt-backed records
-- canonical / non-canonical filtering
+- checklist-backed promotion receipts
+- record and region public brief exports
+- full local workspace session export/import
 - JSON and Markdown export packets
 - public-data safety docs
 - GitHub Pages deploy workflow
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.2 canonical diff + change review
+
+v2.2 protects the workspace from silent drift when a selected record changes:
+
+- edit a selected record in a protected change-review cockpit
+- preview before/after field deltas before applying changes
+- mark each changed field as low, medium, or high impact
+- show source-quality score before and after the proposed change
+- show canonical blockers before and after the proposed change
+- require a reviewer and change reason before applying a change
+- create a local `ChangeReceipt` with timestamp, reason, deltas, quality snapshots, canonical blocker snapshots, and digest
+- include change receipts in Ledger, canonical, session, and audit timeline exports
+- export `DataCenterLedger.CanonicalChangeReview.v2.2`
+- export `DataCenterLedger.ChangeHistory.v2.2`
+
+Change review is a local governance layer. It does not prove a record is true and does not make non-public data safe to publish.
 
 ## v2.1 promotion audit timeline
 
@@ -76,54 +89,8 @@ v2.0 makes promotion explicit, reviewable, and receipt-backed:
 - `reviewed` lifecycle step before `promoted_public`
 - locked promotion until required gates pass
 - local promotion receipt with reviewer, reason, checklist snapshot, source-quality snapshot, prior lifecycle, timestamp, and digest
-- export `DataCenterLedger.CanonicalReviewPacket.v2.0`
-- export `DataCenterLedger.PromotionHistory.v2.0`
-- canonical registry exports include promotion history
 
 Promotion still does not prove a record is true. It only records that the local review gates were satisfied at the time of promotion.
-
-## v1.9 public brief generator
-
-v1.9 turns selected Ledger work into a human-readable public review brief:
-
-- generate a selected-record brief
-- generate a selected-region brief
-- export `DataCenterLedger.PublicBrief` as JSON
-- export a Markdown brief for easy sharing or review
-- include public safety boundary language
-- include review-only / not-proof language
-- summarize claims under review
-- list source receipts and public links where present
-- list unresolved gaps and canonical blockers
-- include source quality or regional quality context
-- avoid exact-coordinate or targeting-map presentation
-
-Public briefs are communication aids. They do not prove that a record is true, do not claim completeness, and do not replace source review.
-
-## v1.8 review queue + task board
-
-v1.8 turns review gaps into local follow-up tasks:
-
-- generates tasks from review warnings, canonical blockers, source-quality gaps, public-link gaps, and high-impact MW/second-source needs
-- supports task categories such as `needs_second_source`, `needs_public_url`, `needs_permit_receipt`, `needs_utility_receipt`, `needs_location_review`, `needs_confidence_review`, `needs_source_quality`, and `ready_for_promotion`
-- tracks task status as `open`, `in_progress`, `blocked`, `done`, or `dismissed`
-- lets reviewers add manual follow-up tasks for the selected record
-- filters tasks by status and category
-- exports `DataCenterLedger.ReviewQueue`
-
-The review queue is a local workflow aid. It does not prove that records are true and does not replace human review.
-
-## v1.7 local review session save/load
-
-v1.7 lets a reviewer pause, archive, share, and restore a full local workspace without adding a backend:
-
-- export `DataCenterLedger.LocalReviewSession`
-- restore a trusted session from pasted JSON or a JSON file
-- preserve records, receipts, notes, import history, receipt edit history, source quality reports, regional summaries, selected region state, and UI filters
-- generate deterministic session IDs and digests
-- keep all session handling browser-local with no hidden network calls
-
-Session packets can contain reviewer notes and source links. Review them before sharing publicly.
 
 ## Run locally
 
