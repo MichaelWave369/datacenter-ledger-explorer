@@ -12,5 +12,7 @@ import "./v25-two-person-rule.css";
 import "./v26-governance-release-manifest.css";
 import "./v28-release-signoff-widget";
 import "./v28-version-sync";
+import "./v29-release-archive-index.css";
+import "./v29-release-archive-index";
 
 createRoot(document.getElementById("root")!).render(<App />);
