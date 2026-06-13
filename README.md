@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, and canonical export packets.
 
 ## Live app
 
@@ -23,10 +23,12 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - normalized CSV import
 - v1.2 import review workbench
 - v1.3 receipt editor workbench
+- v1.4 source quality scoreboard
 - paste/upload CSV preview before commit
 - batch IDs and import history
 - selected-record source receipt editor
 - receipt validation and receipt edit history
+- source-quality reports and export packets
 - receipt-backed records
 - canonical / non-canonical filtering
 - JSON export packets
@@ -35,6 +37,22 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public launch onboarding and safe-use walkthrough
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v1.4 source quality scoreboard
+
+v1.4 adds a visible source-quality layer for every record:
+
+- scores records from 0-100
+- assigns quality bands: `strong`, `moderate`, `weak`, or `blocked`
+- scores receipt count, source-type diversity, public-link coverage, recency, high-impact claim coverage, confidence, and unresolved warning count
+- adds a source-quality scoreboard above the import workbench
+- adds a selected-record quality report in the drawer
+- adds source quality to the working registry table
+- exports `DataCenterLedger.SourceQualityScoreboard.v1.4`
+- includes source-quality reports in Ledger, canonical, launch, and selected receipt exports
+- adds `source quality below 65` to the canonical blocker list
+
+The score is a review aid, not a truth claim. A high score means the record has a stronger receipt posture; it does not prove the underlying claim is true.
 
 ## v1.3 receipt editor workbench
 
