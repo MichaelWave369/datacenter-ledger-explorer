@@ -1,5 +1,5 @@
-const RELEASE_VERSION = "2.8.0";
-const LEGACY_VERSION = "2.7.0";
+const RELEASE_VERSION = "2.9.0";
+const LEGACY_VERSIONS = ["2.7.0", "2.8.0"];
 
 function replaceEvery(value: string, searchValue: string, replacement: string) {
   return value.split(searchValue).join(replacement);
@@ -10,12 +10,16 @@ function syncVisibleVersion() {
   let node = walker.nextNode();
 
   while (node) {
-    if (node.nodeValue?.includes(LEGACY_VERSION)) {
-      node.nodeValue = replaceEvery(node.nodeValue, LEGACY_VERSION, RELEASE_VERSION);
-    }
-    if (node.nodeValue?.includes("V2.7.0")) {
-      node.nodeValue = replaceEvery(node.nodeValue, "V2.7.0", "V2.8.0");
-    }
+    LEGACY_VERSIONS.forEach((legacyVersion) => {
+      if (node.nodeValue?.includes(legacyVersion)) {
+        node.nodeValue = replaceEvery(node.nodeValue, legacyVersion, RELEASE_VERSION);
+      }
+      const legacyUpper = `V${legacyVersion}`;
+      const releaseUpper = `V${RELEASE_VERSION}`;
+      if (node.nodeValue?.includes(legacyUpper)) {
+        node.nodeValue = replaceEvery(node.nodeValue, legacyUpper, releaseUpper);
+      }
+    });
     node = walker.nextNode();
   }
 
