@@ -7,6 +7,7 @@ type Confidence = "high" | "medium" | "low";
 type SourceType = "public_dataset" | "permit" | "utility" | "operator" | "news" | "review" | "other";
 type WarningLevel = "info" | "warning" | "blocking";
 type QualityBand = "strong" | "moderate" | "weak" | "blocked";
+type RegionMode = "state" | "county";
 
 type Receipt = {
   receiptId?: string;
@@ -105,11 +106,32 @@ type SourceQualityReport = {
   digest: string;
 };
 
-const APP_VERSION = "1.4.0";
+type RegionalSummary = {
+  key: string;
+  mode: RegionMode;
+  label: string;
+  state: string;
+  county?: string;
+  recordIds: string[];
+  recordCount: number;
+  canonicalCount: number;
+  needsReviewCount: number;
+  receiptCount: number;
+  averageQuality: number;
+  qualityBands: Record<QualityBand, number>;
+  statusCounts: Record<Status, number>;
+  precisionCounts: Record<Precision, number>;
+  topGaps: { gap: string; count: number }[];
+  safetyNote: string;
+  digest: string;
+};
+
+const APP_VERSION = "1.5.0";
 
 const validStatuses: Status[] = ["operating", "planned", "under_construction", "approved", "unknown"];
 const validSourceTypes: SourceType[] = ["public_dataset", "permit", "utility", "operator", "news", "review", "other"];
 const validPrecisions: Precision[] = ["public_dataset", "city_level", "county_level", "state_level", "unknown"];
+const qualityBands: QualityBand[] = ["strong", "moderate", "weak", "blocked"];
 
 const publicBoundary = [
   "Public-data only",
@@ -129,8 +151,8 @@ const safeUseSteps = [
     body: "Use the import workbench to inspect normalized rows, warnings, source posture, and batch receipts before adding records."
   },
   {
-    title: "Attach receipts",
-    body: "Use the receipt editor to add source name, type, public link, retrieved date, confidence, and exact claim text."
+    title: "Review by region, not coordinates",
+    body: "Use the v1.5 regional view for state/county summaries, quality bands, and review gaps without exposing a targeting map."
   },
   {
     title: "Promote slowly",
@@ -156,15 +178,7 @@ const starterRecords: LedgerRecord[] = [
     lifecycle: "local_working",
     confidenceScore: 72,
     reviewWarnings: ["Demo record; replace with public-source imports before promotion."],
-    receipts: [
-      {
-        sourceName: "Demo seed",
-        sourceType: "review",
-        retrievedAt: "2026-06-13T00:00:00.000Z",
-        claim: "City-level demo row for UI testing only.",
-        confidence: "low"
-      }
-    ],
+    receipts: [{ sourceName: "Demo seed", sourceType: "review", retrievedAt: "2026-06-13T00:00:00.000Z", claim: "City-level demo row for UI testing only.", confidence: "low" }],
     notes: []
   },
   {
@@ -180,15 +194,7 @@ const starterRecords: LedgerRecord[] = [
     lifecycle: "raw_import",
     confidenceScore: 61,
     reviewWarnings: ["Needs a second public source."],
-    receipts: [
-      {
-        sourceName: "Demo seed",
-        sourceType: "review",
-        retrievedAt: "2026-06-13T00:00:00.000Z",
-        claim: "County-level placeholder for workflow testing.",
-        confidence: "low"
-      }
-    ],
+    receipts: [{ sourceName: "Demo seed", sourceType: "review", retrievedAt: "2026-06-13T00:00:00.000Z", claim: "County-level placeholder for workflow testing.", confidence: "low" }],
     notes: []
   },
   {
@@ -204,15 +210,7 @@ const starterRecords: LedgerRecord[] = [
     lifecycle: "raw_import",
     confidenceScore: 54,
     reviewWarnings: ["Needs permit source.", "Needs utility source."],
-    receipts: [
-      {
-        sourceName: "Demo seed",
-        sourceType: "review",
-        retrievedAt: "2026-06-13T00:00:00.000Z",
-        claim: "Demonstrates a low-confidence review queue item.",
-        confidence: "low"
-      }
-    ],
+    receipts: [{ sourceName: "Demo seed", sourceType: "review", retrievedAt: "2026-06-13T00:00:00.000Z", claim: "Demonstrates a low-confidence review queue item.", confidence: "low" }],
     notes: []
   }
 ];
@@ -249,9 +247,7 @@ function sourceQuality(record: LedgerRecord): SourceQualityReport {
   const newestReceiptAgeDays = ages.length ? Math.min(...ages) : null;
   const publicLinkCoverage = receiptCount ? Math.round((linkedReceipts / receiptCount) * 100) : 0;
   const highImpactCoverage: SourceQualityReport["highImpactCoverage"] = record.capacityMW && record.capacityMW > 0
-    ? receiptCount >= 2 && nonReviewReceipts >= 1 && linkedReceipts >= 1
-      ? "covered"
-      : "needs_second_source"
+    ? receiptCount >= 2 && nonReviewReceipts >= 1 && linkedReceipts >= 1 ? "covered" : "needs_second_source"
     : "not_applicable";
 
   const receiptScore = Math.min(20, receiptCount * 10);
@@ -274,20 +270,7 @@ function sourceQuality(record: LedgerRecord): SourceQualityReport {
   if (highImpactCoverage === "needs_second_source") gaps.push("MW/high-impact claim needs second independent public source");
   if (record.reviewWarnings.length === 0) strengths.push("no unresolved warnings"); else gaps.push(`${record.reviewWarnings.length} unresolved review warning(s)`);
 
-  return {
-    recordId: record.id,
-    score,
-    band,
-    receiptCount,
-    sourceTypeCount: sourceTypes.size,
-    publicLinkCoverage,
-    newestReceiptAgeDays,
-    highImpactCoverage,
-    unresolvedWarnings: record.reviewWarnings.length,
-    strengths,
-    gaps,
-    digest: digest({ recordId: record.id, score, receiptCount, sourceTypes: Array.from(sourceTypes), publicLinkCoverage, newestReceiptAgeDays, highImpactCoverage, warnings: record.reviewWarnings })
-  };
+  return { recordId: record.id, score, band, receiptCount, sourceTypeCount: sourceTypes.size, publicLinkCoverage, newestReceiptAgeDays, highImpactCoverage, unresolvedWarnings: record.reviewWarnings.length, strengths, gaps, digest: digest({ recordId: record.id, score, receiptCount, sourceTypes: Array.from(sourceTypes), publicLinkCoverage, newestReceiptAgeDays, highImpactCoverage, warnings: record.reviewWarnings }) };
 }
 
 function canonicalBlockers(record: LedgerRecord) {
@@ -302,28 +285,62 @@ function canonicalBlockers(record: LedgerRecord) {
   return blockers;
 }
 
+function buildRegionalSummaries(records: LedgerRecord[], qualityById: Map<string, SourceQualityReport>, mode: RegionMode): RegionalSummary[] {
+  const buckets = new Map<string, LedgerRecord[]>();
+  for (const record of records) {
+    const normalizedState = record.state || "UNKNOWN";
+    const normalizedCounty = record.county || "Unknown county";
+    const key = mode === "state" ? normalizedState : `${normalizedState}::${normalizedCounty}`;
+    buckets.set(key, [...(buckets.get(key) || []), record]);
+  }
+
+  return Array.from(buckets.entries()).map(([key, bucket]) => {
+    const first = bucket[0];
+    const reports = bucket.map((record) => qualityById.get(record.id) || sourceQuality(record));
+    const averageQuality = reports.length ? Math.round(reports.reduce((sum, report) => sum + report.score, 0) / reports.length) : 0;
+    const qualityBandCounts = Object.fromEntries(qualityBands.map((band) => [band, reports.filter((report) => report.band === band).length])) as Record<QualityBand, number>;
+    const statusCounts = Object.fromEntries(validStatuses.map((status) => [status, bucket.filter((record) => record.status === status).length])) as Record<Status, number>;
+    const precisionCounts = Object.fromEntries(validPrecisions.map((precision) => [precision, bucket.filter((record) => record.precision === precision).length])) as Record<Precision, number>;
+    const gapCounts = new Map<string, number>();
+    for (const report of reports) for (const gap of report.gaps) gapCounts.set(gap, (gapCounts.get(gap) || 0) + 1);
+    const topGaps = Array.from(gapCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([gap, count]) => ({ gap, count }));
+    const canonicalCount = bucket.filter((record) => canonicalBlockers(record).length === 0).length;
+    const label = mode === "state" ? first.state : `${first.county}, ${first.state}`;
+
+    return {
+      key,
+      mode,
+      label,
+      state: first.state,
+      county: mode === "county" ? first.county : undefined,
+      recordIds: bucket.map((record) => record.id),
+      recordCount: bucket.length,
+      canonicalCount,
+      needsReviewCount: bucket.length - canonicalCount,
+      receiptCount: bucket.reduce((sum, record) => sum + record.receipts.length, 0),
+      averageQuality,
+      qualityBands: qualityBandCounts,
+      statusCounts,
+      precisionCounts,
+      topGaps,
+      safetyNote: "Map-safe regional summary only. No exact coordinates, facility layouts, private access details, or non-public enrichment are included.",
+      digest: digest({ key, mode, recordIds: bucket.map((record) => record.id), averageQuality, qualityBandCounts, statusCounts, precisionCounts, topGaps })
+    };
+  }).sort((a, b) => b.recordCount - a.recordCount || a.label.localeCompare(b.label));
+}
+
 function splitCsvLine(line: string) {
   const values: string[] = [];
   let current = "";
   let inQuotes = false;
-
   for (let index = 0; index < line.length; index += 1) {
     const char = line[index];
     const next = line[index + 1];
-
-    if (char === "\"" && inQuotes && next === "\"") {
-      current += "\"";
-      index += 1;
-    } else if (char === "\"") {
-      inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
-      values.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
+    if (char === "\"" && inQuotes && next === "\"") { current += "\""; index += 1; }
+    else if (char === "\"") inQuotes = !inQuotes;
+    else if (char === "," && !inQuotes) { values.push(current.trim()); current = ""; }
+    else current += char;
   }
-
   values.push(current.trim());
   return values;
 }
@@ -331,17 +348,13 @@ function splitCsvLine(line: string) {
 function parseCsvTable(text: string) {
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
   if (lines.length === 0) return { headers: [] as string[], rows: [] as { rowNumber: number; row: Record<string, string> }[] };
-
   const headers = splitCsvLine(lines[0]).map((item) => item.trim().toLowerCase());
   const rows = lines.slice(1).map((line, index) => {
     const values = splitCsvLine(line);
     const row: Record<string, string> = {};
-    headers.forEach((header, headerIndex) => {
-      row[header] = values[headerIndex]?.trim() || "";
-    });
+    headers.forEach((header, headerIndex) => { row[header] = values[headerIndex]?.trim() || ""; });
     return { rowNumber: index + 2, row };
   });
-
   return { headers, rows };
 }
 
@@ -373,14 +386,8 @@ function normalizeSourceType(value: string, rowNumber: number, warnings: ImportW
 
 function normalizeConfidence(value: string, rowNumber: number, warnings: ImportWarning[]) {
   const parsed = Number(value);
-  if (!value) {
-    pushWarning(warnings, rowNumber, "warning", "Missing confidence; defaulted to 50.", "confidence");
-    return 50;
-  }
-  if (Number.isNaN(parsed)) {
-    pushWarning(warnings, rowNumber, "warning", `Invalid confidence "${value}"; defaulted to 50.`, "confidence");
-    return 50;
-  }
+  if (!value) { pushWarning(warnings, rowNumber, "warning", "Missing confidence; defaulted to 50.", "confidence"); return 50; }
+  if (Number.isNaN(parsed)) { pushWarning(warnings, rowNumber, "warning", `Invalid confidence "${value}"; defaulted to 50.`, "confidence"); return 50; }
   const clamped = Math.max(0, Math.min(100, parsed));
   if (clamped !== parsed) pushWarning(warnings, rowNumber, "warning", "Confidence was outside 0-100 and has been clamped.", "confidence");
   return clamped;
@@ -409,15 +416,9 @@ function buildImportPreview(text: string, origin: string, existingRecords: Ledge
   const globalWarnings: ImportWarning[] = [];
   const existingIds = new Set(existingRecords.map((record) => record.id));
   const previewIds = new Set<string>();
-
   if (headers.length === 0) pushWarning(globalWarnings, 1, "blocking", "CSV text is empty or missing a header row.");
   if (headers.length > 0 && rows.length === 0) pushWarning(globalWarnings, 1, "blocking", "CSV has a header row but no data rows.");
-
-  for (const column of ["name", "state", "source"]) {
-    if (!headers.includes(column) && !(column === "state" && headers.includes("state_abb"))) {
-      pushWarning(globalWarnings, 1, "warning", `Recommended column "${column}" is missing.`, column);
-    }
-  }
+  for (const column of ["name", "state", "source"]) if (!headers.includes(column) && !(column === "state" && headers.includes("state_abb"))) pushWarning(globalWarnings, 1, "warning", `Recommended column "${column}" is missing.`, column);
 
   const previewRows = rows.map(({ rowNumber, row }) => {
     const warnings: ImportWarning[] = [];
@@ -452,44 +453,19 @@ function buildImportPreview(text: string, origin: string, existingRecords: Ledge
 
     const reviewWarnings = warnings.filter((warning) => warning.level !== "info").map((warning) => warning.message);
     const record: LedgerRecord = {
-      id,
-      name,
-      operator,
-      status,
-      state,
-      county,
-      city,
-      precision,
+      id, name, operator, status, state, county, city, precision,
       capacityMW: capacityMW && !Number.isNaN(capacityMW) ? capacityMW : undefined,
       lifecycle: "raw_import",
       confidenceScore,
       reviewWarnings: ["Imported row needs human review before promotion.", ...reviewWarnings],
-      receipts: [
-        {
-          sourceName,
-          sourceType,
-          sourceUrl,
-          retrievedAt: new Date(retrievedAt).toString() === "Invalid Date" ? createdAt : new Date(retrievedAt).toISOString(),
-          claim: sourceClaim,
-          confidence: confidenceLabel(confidenceScore),
-          batchId
-        }
-      ],
+      receipts: [{ sourceName, sourceType, sourceUrl, retrievedAt: new Date(retrievedAt).toString() === "Invalid Date" ? createdAt : new Date(retrievedAt).toISOString(), claim: sourceClaim, confidence: confidenceLabel(confidenceScore), batchId }],
       notes: [`Imported through batch ${batchId} from ${origin}.`],
       importBatchId: batchId
     };
-
     return { rowNumber, record, warnings };
   });
 
-  return {
-    batchId,
-    createdAt,
-    origin,
-    rows: previewRows,
-    warnings: globalWarnings,
-    digest: digest({ batchId, rows: previewRows.map((row) => row.record), globalWarnings })
-  };
+  return { batchId, createdAt, origin, rows: previewRows, warnings: globalWarnings, digest: digest({ batchId, rows: previewRows.map((row) => row.record), globalWarnings }) };
 }
 
 function allPreviewWarnings(preview?: ImportPreview | null) {
@@ -508,12 +484,7 @@ function makeEmptyReceiptDraft(): ReceiptDraft {
 
 function isHttpUrl(value: string) {
   if (!value.trim()) return false;
-  try {
-    const url = new URL(value.trim());
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
+  try { const url = new URL(value.trim()); return url.protocol === "http:" || url.protocol === "https:"; } catch { return false; }
 }
 
 function validateReceiptDraft(draft: ReceiptDraft): ImportWarning[] {
@@ -532,15 +503,7 @@ function buildReceiptFromDraft(draft: ReceiptDraft, record: LedgerRecord, addedA
   const sourceUrl = draft.sourceUrl.trim();
   const retrievedDate = new Date(draft.retrievedAt);
   const receiptId = digest({ recordId: record.id, draft, addedAt });
-  return {
-    receiptId,
-    sourceName: draft.sourceName.trim(),
-    sourceType: draft.sourceType,
-    sourceUrl: sourceUrl || undefined,
-    retrievedAt: retrievedDate.toString() === "Invalid Date" ? addedAt : retrievedDate.toISOString(),
-    claim: draft.claim.trim(),
-    confidence: draft.confidence
-  };
+  return { receiptId, sourceName: draft.sourceName.trim(), sourceType: draft.sourceType, sourceUrl: sourceUrl || undefined, retrievedAt: retrievedDate.toString() === "Invalid Date" ? addedAt : retrievedDate.toISOString(), claim: draft.claim.trim(), confidence: draft.confidence };
 }
 
 function resolveWarningsAfterReceipt(record: LedgerRecord, receipt: Receipt) {
@@ -560,7 +523,6 @@ function resolveWarningsAfterReceipt(record: LedgerRecord, receipt: Receipt) {
     if (shouldResolve) resolved.push(warning);
     return !shouldResolve;
   });
-
   const additions: string[] = [];
   if (!hasPublicLink) additions.push("Newest receipt has no source URL; attach a public link before promotion.");
   if (receipt.sourceType === "other") additions.push("Newest receipt source type is other; classify it before promotion if possible.");
@@ -580,6 +542,8 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
   const [mode, setMode] = useState<"all" | "canonical" | "review">("all");
+  const [regionMode, setRegionMode] = useState<RegionMode>("state");
+  const [selectedRegionKey, setSelectedRegionKey] = useState<string>("");
   const [note, setNote] = useState("");
   const [importText, setImportText] = useState("");
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
@@ -596,6 +560,8 @@ export default function App() {
   const canonicalRecords = useMemo(() => records.filter((record) => canonicalBlockers(record).length === 0), [records]);
   const reviewRecords = useMemo(() => records.filter((record) => canonicalBlockers(record).length > 0), [records]);
   const demoRecords = useMemo(() => records.filter((record) => record.id.startsWith("dcl-demo-")), [records]);
+  const regionalSummaries = useMemo(() => buildRegionalSummaries(records, qualityById, regionMode), [records, qualityById, regionMode]);
+  const selectedRegion = regionalSummaries.find((region) => region.key === selectedRegionKey) || regionalSummaries[0];
   const importWarnings = allPreviewWarnings(importPreview);
   const hasBlockingImport = importWarnings.some((warning) => warning.level === "blocking");
   const receiptDraftWarnings = useMemo(() => validateReceiptDraft(receiptDraft), [receiptDraft]);
@@ -619,9 +585,7 @@ export default function App() {
   }), [records, query, stateFilter, mode]);
 
   function promoteSelected() {
-    setRecords((items) => items.map((item) => item.id === selected.id
-      ? { ...item, lifecycle: "promoted_public", reviewWarnings: [], notes: [...item.notes, `Promoted locally at ${new Date().toLocaleString()}. Confirm source posture before publishing.`] }
-      : item));
+    setRecords((items) => items.map((item) => item.id === selected.id ? { ...item, lifecycle: "promoted_public", reviewWarnings: [], notes: [...item.notes, `Promoted locally at ${new Date().toLocaleString()}. Confirm source posture before publishing.`] } : item));
   }
 
   function saveNote() {
@@ -630,58 +594,23 @@ export default function App() {
     setNote("");
   }
 
-  function updateReceiptDraft<K extends keyof ReceiptDraft>(key: K, value: ReceiptDraft[K]) {
-    setReceiptDraft((draft) => ({ ...draft, [key]: value }));
-  }
-
-  function clearReceiptDraft() {
-    setReceiptDraft(makeEmptyReceiptDraft());
-  }
+  function updateReceiptDraft<K extends keyof ReceiptDraft>(key: K, value: ReceiptDraft[K]) { setReceiptDraft((draft) => ({ ...draft, [key]: value })); }
+  function clearReceiptDraft() { setReceiptDraft(makeEmptyReceiptDraft()); }
 
   function addReceiptToSelected() {
     if (hasBlockingReceiptDraft) return;
     const addedAt = nowIso();
     const receipt = buildReceiptFromDraft(receiptDraft, selected, addedAt);
     const resolution = resolveWarningsAfterReceipt(selected, receipt);
-    const historyItem: ReceiptEditHistoryItem = {
-      receiptId: receipt.receiptId || digest({ receipt, addedAt }),
-      recordId: selected.id,
-      recordName: selected.name,
-      addedAt,
-      sourceName: receipt.sourceName,
-      sourceType: receipt.sourceType,
-      confidence: receipt.confidence,
-      resolvedWarnings: resolution.resolved,
-      remainingWarnings: resolution.remaining.length,
-      digest: digest({ receipt, recordId: selected.id, addedAt, resolvedWarnings: resolution.resolved })
-    };
-    setRecords((items) => items.map((item) => item.id === selected.id
-      ? {
-          ...item,
-          receipts: [...item.receipts, receipt],
-          reviewWarnings: resolution.remaining,
-          notes: [...item.notes, `Receipt ${historyItem.receiptId} added at ${new Date(addedAt).toLocaleString()} from ${receipt.sourceName}. Resolved ${resolution.resolved.length} warning(s).`]
-        }
-      : item));
+    const historyItem: ReceiptEditHistoryItem = { receiptId: receipt.receiptId || digest({ receipt, addedAt }), recordId: selected.id, recordName: selected.name, addedAt, sourceName: receipt.sourceName, sourceType: receipt.sourceType, confidence: receipt.confidence, resolvedWarnings: resolution.resolved, remainingWarnings: resolution.remaining.length, digest: digest({ receipt, recordId: selected.id, addedAt, resolvedWarnings: resolution.resolved }) };
+    setRecords((items) => items.map((item) => item.id === selected.id ? { ...item, receipts: [...item.receipts, receipt], reviewWarnings: resolution.remaining, notes: [...item.notes, `Receipt ${historyItem.receiptId} added at ${new Date(addedAt).toLocaleString()} from ${receipt.sourceName}. Resolved ${resolution.resolved.length} warning(s).`] } : item));
     setReceiptHistory((items) => [historyItem, ...items]);
     clearReceiptDraft();
   }
 
-  function previewImportFromText(origin = "pasted CSV") {
-    setImportPreview(buildImportPreview(importText, origin, records));
-  }
-
-  async function loadCsvFile(file: File) {
-    const text = await file.text();
-    setImportText(text);
-    setImportPreview(buildImportPreview(text, file.name, records));
-  }
-
-  function loadSampleImport() {
-    setImportText(sampleCsv);
-    setImportPreview(buildImportPreview(sampleCsv, "sample CSV", records));
-  }
-
+  function previewImportFromText(origin = "pasted CSV") { setImportPreview(buildImportPreview(importText, origin, records)); }
+  async function loadCsvFile(file: File) { const text = await file.text(); setImportText(text); setImportPreview(buildImportPreview(text, file.name, records)); }
+  function loadSampleImport() { setImportText(sampleCsv); setImportPreview(buildImportPreview(sampleCsv, "sample CSV", records)); }
   function commitImportPreview() {
     if (!importPreview || hasBlockingImport) return;
     const importedRecords = importPreview.rows.map((row) => row.record);
@@ -691,144 +620,78 @@ export default function App() {
     setImportPreview(null);
     setImportText("");
   }
+  function clearImportWorkbench() { setImportPreview(null); setImportText(""); }
+  function resetDemoData() { setRecords(starterRecords); setSelectedId(starterRecords[0].id); setQuery(""); setStateFilter("all"); setMode("all"); setRegionMode("state"); setSelectedRegionKey(""); setImportPreview(null); setImportText(""); setImportHistory([]); setReceiptHistory([]); clearReceiptDraft(); }
 
-  function clearImportWorkbench() {
-    setImportPreview(null);
-    setImportText("");
-  }
-
-  function resetDemoData() {
-    setRecords(starterRecords);
-    setSelectedId(starterRecords[0].id);
-    setQuery("");
-    setStateFilter("all");
-    setMode("all");
-    setImportPreview(null);
-    setImportText("");
-    setImportHistory([]);
-    setReceiptHistory([]);
-    clearReceiptDraft();
+  function selectRegion(region: RegionalSummary) {
+    setSelectedRegionKey(region.key);
+    setStateFilter(region.state);
+    if (region.county) setQuery(region.county);
   }
 
   function exportLedger() {
-    downloadJson("datacenter-ledger-export.json", {
-      schema: "DataCenterLedger.Export.v1.4-source-quality-scoreboard",
-      generatedAt: nowIso(),
-      appVersion: APP_VERSION,
-      boundary: publicBoundary,
-      importHistory,
-      receiptHistory,
-      sourceQuality: qualityReports,
-      records,
-      digest: digest({ records, importHistory, receiptHistory, qualityReports })
-    });
+    downloadJson("datacenter-ledger-export.json", { schema: "DataCenterLedger.Export.v1.5-map-safe-regional-view", generatedAt: nowIso(), appVersion: APP_VERSION, boundary: publicBoundary, importHistory, receiptHistory, sourceQuality: qualityReports, regionalSummaries, records, digest: digest({ records, importHistory, receiptHistory, qualityReports, regionalSummaries }) });
   }
-
   function exportCanonical() {
     const included = canonicalRecords.map((record) => ({ ...record, sourceQuality: qualityById.get(record.id) }));
     const excluded = records.filter((record) => canonicalBlockers(record).length > 0).map((record) => ({ id: record.id, name: record.name, sourceQuality: qualityById.get(record.id), blockers: canonicalBlockers(record) }));
-    downloadJson("datacenter-ledger-canonical.json", {
-      schema: "DataCenterLedger.CanonicalRegistry.v1.4-source-quality-scoreboard",
-      generatedAt: nowIso(),
-      appVersion: APP_VERSION,
-      included,
-      excluded,
-      digest: digest({ included, excluded })
-    });
+    downloadJson("datacenter-ledger-canonical.json", { schema: "DataCenterLedger.CanonicalRegistry.v1.5-map-safe-regional-view", generatedAt: nowIso(), appVersion: APP_VERSION, included, excluded, regionalSummaries, digest: digest({ included, excluded, regionalSummaries }) });
   }
-
   function exportLaunchPacket() {
-    downloadJson("datacenter-ledger-public-launch-packet.json", {
-      schema: "DataCenterLedger.PublicLaunchPacket.v1.4",
-      generatedAt: nowIso(),
-      appVersion: APP_VERSION,
-      purpose: "Public-safe civic transparency workbench for reviewing U.S. data center records as source-backed claims.",
-      boundary: publicBoundary,
-      safeUseSteps,
-      stats: { records: records.length, demoRecords: demoRecords.length, canonicalRecords: canonicalRecords.length, needsReview: reviewRecords.length, receipts: records.reduce((sum, record) => sum + record.receipts.length, 0), receiptEdits: receiptHistory.length, importBatches: importHistory.length, averageSourceQuality: averageQuality },
-      digest: digest({ records, importHistory, receiptHistory, qualityReports, publicBoundary, safeUseSteps })
-    });
+    downloadJson("datacenter-ledger-public-launch-packet.json", { schema: "DataCenterLedger.PublicLaunchPacket.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, purpose: "Public-safe civic transparency workbench for reviewing U.S. data center records as source-backed claims.", boundary: publicBoundary, safeUseSteps, stats: { records: records.length, regions: regionalSummaries.length, demoRecords: demoRecords.length, canonicalRecords: canonicalRecords.length, needsReview: reviewRecords.length, receipts: records.reduce((sum, record) => sum + record.receipts.length, 0), receiptEdits: receiptHistory.length, importBatches: importHistory.length, averageSourceQuality: averageQuality }, digest: digest({ records, importHistory, receiptHistory, qualityReports, regionalSummaries, publicBoundary, safeUseSteps }) });
   }
-
-  function exportImportPreview() {
-    if (!importPreview) return;
-    downloadJson("datacenter-ledger-import-preview.json", { schema: "DataCenterLedger.ImportPreview.v1.4", generatedAt: nowIso(), appVersion: APP_VERSION, preview: importPreview, warningSummary: { total: warningCount(importPreview), blocking: warningCount(importPreview, "blocking"), warning: warningCount(importPreview, "warning"), info: warningCount(importPreview, "info") } });
-  }
-
-  function exportImportHistory() {
-    downloadJson("datacenter-ledger-import-history.json", { schema: "DataCenterLedger.ImportHistory.v1.4", generatedAt: nowIso(), appVersion: APP_VERSION, importHistory, digest: digest(importHistory) });
-  }
-
-  function exportSelectedReceiptPacket() {
-    downloadJson("datacenter-ledger-selected-receipts.json", { schema: "DataCenterLedger.SelectedReceiptPacket.v1.4", generatedAt: nowIso(), appVersion: APP_VERSION, selectedRecord: selected, sourceQuality: selectedQuality, canonicalBlockers: canonicalBlockers(selected), receiptHistory: selectedReceiptHistory, digest: digest({ selected, selectedQuality, selectedReceiptHistory }) });
-  }
-
-  function exportReceiptHistory() {
-    downloadJson("datacenter-ledger-receipt-history.json", { schema: "DataCenterLedger.ReceiptEditHistory.v1.4", generatedAt: nowIso(), appVersion: APP_VERSION, receiptHistory, digest: digest(receiptHistory) });
-  }
-
-  function exportSourceQuality() {
-    downloadJson("datacenter-ledger-source-quality.json", { schema: "DataCenterLedger.SourceQualityScoreboard.v1.4", generatedAt: nowIso(), appVersion: APP_VERSION, summary: { averageQuality, ...qualityCounts }, reports: qualityReports, digest: digest({ qualityReports, averageQuality, qualityCounts }) });
-  }
+  function exportImportPreview() { if (!importPreview) return; downloadJson("datacenter-ledger-import-preview.json", { schema: "DataCenterLedger.ImportPreview.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, preview: importPreview, warningSummary: { total: warningCount(importPreview), blocking: warningCount(importPreview, "blocking"), warning: warningCount(importPreview, "warning"), info: warningCount(importPreview, "info") } }); }
+  function exportImportHistory() { downloadJson("datacenter-ledger-import-history.json", { schema: "DataCenterLedger.ImportHistory.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, importHistory, digest: digest(importHistory) }); }
+  function exportSelectedReceiptPacket() { downloadJson("datacenter-ledger-selected-receipts.json", { schema: "DataCenterLedger.SelectedReceiptPacket.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, selectedRecord: selected, sourceQuality: selectedQuality, regionalContext: regionalSummaries.filter((region) => region.recordIds.includes(selected.id)), canonicalBlockers: canonicalBlockers(selected), receiptHistory: selectedReceiptHistory, digest: digest({ selected, selectedQuality, selectedReceiptHistory }) }); }
+  function exportReceiptHistory() { downloadJson("datacenter-ledger-receipt-history.json", { schema: "DataCenterLedger.ReceiptEditHistory.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, receiptHistory, digest: digest(receiptHistory) }); }
+  function exportSourceQuality() { downloadJson("datacenter-ledger-source-quality.json", { schema: "DataCenterLedger.SourceQualityScoreboard.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, summary: { averageQuality, ...qualityCounts }, reports: qualityReports, digest: digest({ qualityReports, averageQuality, qualityCounts }) }); }
+  function exportRegionalSummary() { downloadJson("datacenter-ledger-regional-summary.json", { schema: "DataCenterLedger.MapSafeRegionalSummary.v1.5", generatedAt: nowIso(), appVersion: APP_VERSION, mode: regionMode, safetyBoundary: publicBoundary, selectedRegion, regions: regionalSummaries, digest: digest({ regionMode, selectedRegion, regionalSummaries }) }); }
 
   return (
     <main className="shell">
       <header className="hero launchHero">
         <div>
-          <p className="eyebrow">v{APP_VERSION} source quality scoreboard • local-first • receipt-backed</p>
+          <p className="eyebrow">v{APP_VERSION} map-safe regional view • local-first • receipt-backed</p>
           <h1>DataCenterLedger Explorer</h1>
-          <p>A civic transparency workbench for reviewing public data center records as claims — with receipts, confidence scores, source-quality scoring, import review gates, lifecycle decisions, canonical exports, and a clear safety boundary.</p>
+          <p>A civic transparency workbench for reviewing public data center records as claims — with receipts, confidence scores, source-quality scoring, regional summaries, import review gates, lifecycle decisions, canonical exports, and a clear safety boundary.</p>
           <div className="boundaryPills" aria-label="Public safety boundary">{publicBoundary.map((item) => <span key={item}>{item}</span>)}</div>
         </div>
         <div className="heroActions"><button onClick={exportLedger}>Export Ledger JSON</button><button onClick={exportCanonical}>Export Canonical JSON</button><button onClick={exportLaunchPacket}>Export Launch Packet</button></div>
       </header>
 
       <section className="launchGrid" aria-label="Launch overview">
-        <div className="panel introPanel"><p className="eyebrow">What this is</p><h2>Public records in, reviewed Ledger out.</h2><p>Paste or load a CSV, preview normalized rows, inspect warnings before commit, preserve source receipts, add local reviewer notes, attach new source receipts, score source quality, and export either the full working Ledger or only records that pass the canonical gate.</p></div>
-        <div className="panel introPanel cautionPanel"><p className="eyebrow">What this is not</p><h2>Not a targeting map.</h2><p>This starter app ships with demo rows only. It should not be used to add private access details, sensitive layouts, unreviewed exact coordinates, or any non-public enrichment.</p></div>
+        <div className="panel introPanel"><p className="eyebrow">What this is</p><h2>Public records in, reviewed Ledger out.</h2><p>Paste or load a CSV, preview normalized rows, inspect warnings before commit, preserve source receipts, attach new source receipts, score source quality, summarize by state/county, and export either the full working Ledger or only records that pass the canonical gate.</p></div>
+        <div className="panel introPanel cautionPanel"><p className="eyebrow">What this is not</p><h2>Not a targeting map.</h2><p>The v1.5 regional view intentionally shows state/county summaries only. It should not be used to add private access details, sensitive layouts, unreviewed exact coordinates, or any non-public enrichment.</p></div>
       </section>
 
-      <section className="cards">
-        <Stat label="Records" value={records.length} /><Stat label="Canonical" value={canonicalRecords.length} /><Stat label="Receipts" value={records.reduce((sum, record) => sum + record.receipts.length, 0)} /><Stat label="Avg quality" value={`${averageQuality}%`} /><Stat label="Receipt edits" value={receiptHistory.length} /><Stat label="Needs review" value={reviewRecords.length} /><Stat label="Import batches" value={importHistory.length} />
-      </section>
-
+      <section className="cards"><Stat label="Records" value={records.length} /><Stat label="Regions" value={regionalSummaries.length} /><Stat label="Canonical" value={canonicalRecords.length} /><Stat label="Receipts" value={records.reduce((sum, record) => sum + record.receipts.length, 0)} /><Stat label="Avg quality" value={`${averageQuality}%`} /><Stat label="Needs review" value={reviewRecords.length} /><Stat label="Import batches" value={importHistory.length} /></section>
       <section className="panel walkthrough"><div><p className="eyebrow">How to use this safely</p><h2>Four-step public review flow</h2></div><div className="stepGrid">{safeUseSteps.map((step, index) => <article key={step.title} className="stepCard"><span>{index + 1}</span><h3>{step.title}</h3><p>{step.body}</p></article>)}</div></section>
 
-      <section className="panel qualityScoreboard">
-        <div className="panelHeader"><div><p className="eyebrow">v1.4 Source Quality Scoreboard</p><h2>Score records before they become canonical</h2><p className="muted">Quality is calculated from receipt count, source diversity, public-link coverage, recency, high-impact claim corroboration, confidence, and unresolved warnings.</p></div><button onClick={exportSourceQuality}>Export Source Quality</button></div>
-        <div className="qualitySummary"><Stat label="Strong" value={qualityCounts.strong} /><Stat label="Moderate" value={qualityCounts.moderate} /><Stat label="Weak" value={qualityCounts.weak} /><Stat label="Blocked" value={qualityCounts.blocked} /></div>
-        <div className="qualityBars">{qualityReports.map((report) => { const record = records.find((item) => item.id === report.recordId); return <button key={report.recordId} className="qualityBar" onClick={() => setSelectedId(report.recordId)}><span><strong>{record?.name || report.recordId}</strong><small>{report.receiptCount} receipts • {report.sourceTypeCount} source type(s) • {report.publicLinkCoverage}% linked</small></span><b>{report.score}%</b><i className={bandChipClass(report.band)}>{report.band}</i></button>; })}</div>
+      <section className="panel regionalView">
+        <div className="panelHeader"><div><p className="eyebrow">v1.5 Map-Safe Regional View</p><h2>Regional review without exact coordinates</h2><p className="muted">Summarize records by state or county. This is a civic review table, not a facility locator map.</p></div><div className="heroActions"><select value={regionMode} onChange={(event) => { setRegionMode(event.target.value as RegionMode); setSelectedRegionKey(""); }}><option value="state">State summary</option><option value="county">County summary</option></select><button onClick={exportRegionalSummary}>Export Regional Summary</button></div></div>
+        <div className="regionalSafety"><strong>Map-safe boundary:</strong><span>No exact markers, no facility layouts, no private access details, no non-public enrichment. Regions are grouped only by public state/county fields.</span></div>
+        <div className="regionalGrid">
+          <div className="regionalTable tableWrap"><table><thead><tr><th>Region</th><th>Records</th><th>Canonical</th><th>Needs review</th><th>Avg quality</th><th>Top gap</th></tr></thead><tbody>{regionalSummaries.map((region) => <tr key={region.key} onClick={() => selectRegion(region)} className={region.key === selectedRegion?.key ? "selected" : ""}><td><strong>{region.label}</strong><small>{region.digest}</small></td><td>{region.recordCount}</td><td>{region.canonicalCount}</td><td>{region.needsReviewCount}</td><td><span className={bandChipClass(region.averageQuality >= 80 ? "strong" : region.averageQuality >= 60 ? "moderate" : region.averageQuality >= 40 ? "weak" : "blocked")}>{region.averageQuality}%</span></td><td>{region.topGaps[0] ? `${region.topGaps[0].gap} (${region.topGaps[0].count})` : "no major gaps"}</td></tr>)}</tbody></table></div>
+          {selectedRegion && <aside className="regionCard"><p className="eyebrow">Selected region</p><h3>{selectedRegion.label}</h3><div className="miniGrid"><Stat label="Records" value={selectedRegion.recordCount} /><Stat label="Canonical" value={selectedRegion.canonicalCount} /><Stat label="Quality" value={`${selectedRegion.averageQuality}%`} /></div><h4>Quality bands</h4><div className="bandRow">{qualityBands.map((band) => <span key={band} className={bandChipClass(band)}>{band}: {selectedRegion.qualityBands[band]}</span>)}</div><h4>Status counts</h4><div className="bandRow">{validStatuses.map((status) => <span key={status} className="chip info">{status}: {selectedRegion.statusCounts[status]}</span>)}</div><h4>Top review gaps</h4>{selectedRegion.topGaps.length ? <ul>{selectedRegion.topGaps.map((gap) => <li key={gap.gap}>{gap.gap} — {gap.count}</li>)}</ul> : <p className="okText">No major regional gaps detected.</p>}<p className="muted">{selectedRegion.safetyNote}</p></aside>}
+        </div>
       </section>
 
-      <section className="panel importWorkbench" aria-label="Import review workbench">
-        <div className="panelHeader"><div><p className="eyebrow">v1.2 Import Review Workbench</p><h2>Preview CSV rows before they enter the Ledger</h2><p className="muted">Paste normalized CSV or load a file. The app creates a batch preview, source receipts, validation warnings, and a deterministic preview digest before anything is committed.</p></div><div className="heroActions"><button onClick={loadSampleImport}>Load Sample CSV</button><label className="fileButton">Load CSV file<input type="file" accept=".csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void loadCsvFile(file); event.currentTarget.value = ""; }} /></label></div></div>
-        <textarea className="csvTextArea" value={importText} onChange={(event) => setImportText(event.target.value)} placeholder="Paste normalized CSV here. Required posture: public source, state, reviewable claim, and receipt context." />
-        <div className="importActions"><button onClick={() => previewImportFromText()} disabled={!importText.trim()}>Preview CSV</button><button onClick={exportImportPreview} disabled={!importPreview}>Export Preview Packet</button><button onClick={commitImportPreview} disabled={!importPreview || hasBlockingImport}>Commit Preview to Ledger</button><button onClick={exportImportHistory} disabled={importHistory.length === 0}>Export Import History</button><button onClick={clearImportWorkbench}>Clear Import Workbench</button></div>
-        {importPreview ? <div className="previewPanel"><div className="previewSummary"><Stat label="Preview rows" value={importPreview.rows.length} /><Stat label="Blocking" value={warningCount(importPreview, "blocking")} /><Stat label="Warnings" value={warningCount(importPreview, "warning")} /><Stat label="Info" value={warningCount(importPreview, "info")} /></div><div className="batchMeta"><span><strong>Batch:</strong> {importPreview.batchId}</span><span><strong>Origin:</strong> {importPreview.origin}</span><span><strong>Digest:</strong> {importPreview.digest}</span></div>{hasBlockingImport && <p className="dangerText">Blocking issues must be fixed before this batch can be committed.</p>}<div className="tableWrap previewTable"><table><thead><tr><th>Row</th><th>Name</th><th>State</th><th>Source</th><th>Warnings</th></tr></thead><tbody>{importPreview.rows.map((row) => <tr key={`${importPreview.batchId}-${row.rowNumber}`}><td>{row.rowNumber}</td><td><strong>{row.record.name}</strong><small>{row.record.operator}</small></td><td>{row.record.state}</td><td>{row.record.receipts[0]?.sourceName || "Missing source"}</td><td>{row.warnings.length ? row.warnings.map((warning) => <span key={`${warning.field}-${warning.message}`} className={`chip ${warning.level === "blocking" ? "danger" : warning.level === "info" ? "info" : "warn"}`}>{warning.level}: {warning.message}</span>) : <span className="chip ok">ready for review</span>}</td></tr>)}</tbody></table></div></div> : <p className="muted">No active preview yet. Load the sample CSV or paste public-source rows to begin.</p>}
-      </section>
+      <section className="panel qualityScoreboard"><div className="panelHeader"><div><p className="eyebrow">v1.4 Source Quality Scoreboard</p><h2>Score records before they become canonical</h2><p className="muted">Quality is calculated from receipt count, source diversity, public-link coverage, recency, high-impact claim corroboration, confidence, and unresolved warnings.</p></div><button onClick={exportSourceQuality}>Export Source Quality</button></div><div className="qualitySummary"><Stat label="Strong" value={qualityCounts.strong} /><Stat label="Moderate" value={qualityCounts.moderate} /><Stat label="Weak" value={qualityCounts.weak} /><Stat label="Blocked" value={qualityCounts.blocked} /></div><div className="qualityBars">{qualityReports.map((report) => { const record = records.find((item) => item.id === report.recordId); return <button key={report.recordId} className="qualityBar" onClick={() => setSelectedId(report.recordId)}><span><strong>{record?.name || report.recordId}</strong><small>{report.receiptCount} receipts • {report.sourceTypeCount} source type(s) • {report.publicLinkCoverage}% linked</small></span><b>{report.score}%</b><i className={bandChipClass(report.band)}>{report.band}</i></button>; })}</div></section>
+
+      <section className="panel importWorkbench" aria-label="Import review workbench"><div className="panelHeader"><div><p className="eyebrow">v1.2 Import Review Workbench</p><h2>Preview CSV rows before they enter the Ledger</h2><p className="muted">Paste normalized CSV or load a file. The app creates a batch preview, source receipts, validation warnings, and a deterministic preview digest before anything is committed.</p></div><div className="heroActions"><button onClick={loadSampleImport}>Load Sample CSV</button><label className="fileButton">Load CSV file<input type="file" accept=".csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void loadCsvFile(file); event.currentTarget.value = ""; }} /></label></div></div><textarea className="csvTextArea" value={importText} onChange={(event) => setImportText(event.target.value)} placeholder="Paste normalized CSV here. Required posture: public source, state, reviewable claim, and receipt context." /><div className="importActions"><button onClick={() => previewImportFromText()} disabled={!importText.trim()}>Preview CSV</button><button onClick={exportImportPreview} disabled={!importPreview}>Export Preview Packet</button><button onClick={commitImportPreview} disabled={!importPreview || hasBlockingImport}>Commit Preview to Ledger</button><button onClick={exportImportHistory} disabled={importHistory.length === 0}>Export Import History</button><button onClick={clearImportWorkbench}>Clear Import Workbench</button></div>{importPreview ? <div className="previewPanel"><div className="previewSummary"><Stat label="Preview rows" value={importPreview.rows.length} /><Stat label="Blocking" value={warningCount(importPreview, "blocking")} /><Stat label="Warnings" value={warningCount(importPreview, "warning")} /><Stat label="Info" value={warningCount(importPreview, "info")} /></div><div className="batchMeta"><span><strong>Batch:</strong> {importPreview.batchId}</span><span><strong>Origin:</strong> {importPreview.origin}</span><span><strong>Digest:</strong> {importPreview.digest}</span></div>{hasBlockingImport && <p className="dangerText">Blocking issues must be fixed before this batch can be committed.</p>}<div className="tableWrap previewTable"><table><thead><tr><th>Row</th><th>Name</th><th>State</th><th>Source</th><th>Warnings</th></tr></thead><tbody>{importPreview.rows.map((row) => <tr key={`${importPreview.batchId}-${row.rowNumber}`}><td>{row.rowNumber}</td><td><strong>{row.record.name}</strong><small>{row.record.operator}</small></td><td>{row.record.state}</td><td>{row.record.receipts[0]?.sourceName || "Missing source"}</td><td>{row.warnings.length ? row.warnings.map((warning) => <span key={`${warning.field}-${warning.message}`} className={`chip ${warning.level === "blocking" ? "danger" : warning.level === "info" ? "info" : "warn"}`}>{warning.level}: {warning.message}</span>) : <span className="chip ok">ready for review</span>}</td></tr>)}</tbody></table></div></div> : <p className="muted">No active preview yet. Load the sample CSV or paste public-source rows to begin.</p>}</section>
 
       <section className="toolbar"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records, operators, counties..." /><select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}><option value="all">All states</option>{states.map((state) => <option key={state} value={state}>{state}</option>)}</select><select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}><option value="all">All records</option><option value="canonical">Canonical only</option><option value="review">Needs review</option></select><button onClick={resetDemoData}>Reset Demo</button></section>
       <section className="sampleNotice panel"><strong>Sample data loaded:</strong><span>{demoRecords.length} demo rows are visible so the live site is understandable immediately. Replace them with public-source imports before using the Ledger for real review work.</span></section>
 
-      <section className="grid">
-        <div className="panel"><div className="panelHeader"><div><p className="eyebrow">Working registry</p><h2>Review queue</h2></div><span className="countBadge">{visibleRecords.length} visible</span></div><div className="tableWrap"><table><thead><tr><th>Name</th><th>State</th><th>Status</th><th>Lifecycle</th><th>Quality</th><th>Receipts</th><th>Gate</th></tr></thead><tbody>{visibleRecords.map((record) => { const blockers = canonicalBlockers(record); const quality = qualityById.get(record.id) || sourceQuality(record); return <tr key={record.id} onClick={() => setSelectedId(record.id)} className={record.id === selected.id ? "selected" : ""}><td><strong>{record.name}</strong><small>{record.operator}</small></td><td>{record.state}</td><td>{record.status}</td><td>{record.lifecycle}</td><td><span className={bandChipClass(quality.band)}>{quality.score}% {quality.band}</span></td><td>{record.receipts.length}</td><td><span className={blockers.length ? "chip warn" : "chip ok"}>{blockers.length ? "review" : "canonical"}</span></td></tr>; })}</tbody></table></div></div>
+      <section className="grid"><div className="panel"><div className="panelHeader"><div><p className="eyebrow">Working registry</p><h2>Review queue</h2></div><span className="countBadge">{visibleRecords.length} visible</span></div><div className="tableWrap"><table><thead><tr><th>Name</th><th>State</th><th>Status</th><th>Lifecycle</th><th>Quality</th><th>Receipts</th><th>Gate</th></tr></thead><tbody>{visibleRecords.map((record) => { const blockers = canonicalBlockers(record); const quality = qualityById.get(record.id) || sourceQuality(record); return <tr key={record.id} onClick={() => setSelectedId(record.id)} className={record.id === selected.id ? "selected" : ""}><td><strong>{record.name}</strong><small>{record.operator}</small></td><td>{record.state}</td><td>{record.status}</td><td>{record.lifecycle}</td><td><span className={bandChipClass(quality.band)}>{quality.score}% {quality.band}</span></td><td>{record.receipts.length}</td><td><span className={blockers.length ? "chip warn" : "chip ok"}>{blockers.length ? "review" : "canonical"}</span></td></tr>; })}</tbody></table></div></div>
 
-        <aside className="panel drawer">
-          <p className="eyebrow">Selected record</p><h2>{selected.name}</h2><p className="muted">{selected.city ? `${selected.city}, ` : ""}{selected.county}, {selected.state} • {selected.precision}</p><div className="miniGrid"><Stat label="MW" value={selected.capacityMW || "unknown"} /><Stat label="Receipts" value={selected.receipts.length} /><Stat label="Quality" value={`${selectedQuality.score}%`} /></div>
-          <section className="sourceQualityCard"><div className="panelHeader compactHeader"><div><p className="eyebrow">Source quality</p><h3>{selectedQuality.score}% <span className={bandChipClass(selectedQuality.band)}>{selectedQuality.band}</span></h3></div><small>{selectedQuality.digest}</small></div><div className="qualityDetails"><span>{selectedQuality.receiptCount} receipt(s)</span><span>{selectedQuality.sourceTypeCount} source type(s)</span><span>{selectedQuality.publicLinkCoverage}% public-link coverage</span><span>Newest receipt: {selectedQuality.newestReceiptAgeDays === null ? "unknown" : `${selectedQuality.newestReceiptAgeDays} day(s)`}</span><span>High-impact: {selectedQuality.highImpactCoverage}</span></div>{selectedQuality.gaps.length > 0 && <><h4>Quality gaps</h4><ul>{selectedQuality.gaps.map((gap) => <li key={gap}>{gap}</li>)}</ul></>}{selectedQuality.strengths.length > 0 && <><h4>Strengths</h4><ul>{selectedQuality.strengths.map((strength) => <li key={strength}>{strength}</li>)}</ul></>}</section>
-          <h3>Canonical decision</h3>{canonicalBlockers(selected).length ? <ul>{canonicalBlockers(selected).map((item) => <li key={item}>{item}</li>)}</ul> : <p className="okText">Record passes the current canonical gate.</p>}<button onClick={promoteSelected}>Promote selected locally</button>
-          <section className="receiptEditor" aria-label="Receipt editor"><div className="panelHeader compactHeader"><div><p className="eyebrow">v1.3 Receipt Editor</p><h3>Add a public source receipt</h3></div><button onClick={exportSelectedReceiptPacket}>Export Selected Receipt Packet</button></div><div className="receiptGrid"><label>Source name<input value={receiptDraft.sourceName} onChange={(event) => updateReceiptDraft("sourceName", event.target.value)} placeholder="County permit portal, utility filing, operator release..." /></label><label>Source type<select value={receiptDraft.sourceType} onChange={(event) => updateReceiptDraft("sourceType", event.target.value as SourceType)}>{validSourceTypes.map((sourceType) => <option key={sourceType} value={sourceType}>{sourceType}</option>)}</select></label><label>Public URL<input value={receiptDraft.sourceUrl} onChange={(event) => updateReceiptDraft("sourceUrl", event.target.value)} placeholder="https://..." /></label><label>Retrieved date<input type="date" value={receiptDraft.retrievedAt} onChange={(event) => updateReceiptDraft("retrievedAt", event.target.value)} /></label><label>Confidence<select value={receiptDraft.confidence} onChange={(event) => updateReceiptDraft("confidence", event.target.value as Confidence)}><option value="high">high</option><option value="medium">medium</option><option value="low">low</option></select></label></div><label>Claim supported by this source<textarea value={receiptDraft.claim} onChange={(event) => updateReceiptDraft("claim", event.target.value)} placeholder="Describe the exact claim this public source supports." /></label>{receiptDraftWarnings.length > 0 && <div className="globalWarnings receiptWarnings">{receiptDraftWarnings.map((warning) => <span key={`${warning.field}-${warning.message}`} className={`chip ${warning.level === "blocking" ? "danger" : warning.level === "info" ? "info" : "warn"}`}>{warning.level}: {warning.message}</span>)}</div>}<div className="importActions"><button onClick={addReceiptToSelected} disabled={hasBlockingReceiptDraft}>Add Receipt to Selected</button><button onClick={clearReceiptDraft}>Clear Receipt Draft</button><button onClick={exportReceiptHistory} disabled={receiptHistory.length === 0}>Export Receipt History</button></div>{selectedReceiptHistory.length > 0 && <p className="muted">{selectedReceiptHistory.length} receipt edit(s) recorded for this selected record.</p>}</section>
-          <h3>Receipts</h3>{selected.receipts.map((receipt, index) => <div key={receipt.receiptId || `${receipt.sourceName}-${index}`} className="receipt"><strong>{receipt.sourceName}</strong><span>{receipt.sourceType} • {receipt.confidence} • {new Date(receipt.retrievedAt).toLocaleDateString()}</span><p>{receipt.claim}</p>{receipt.sourceUrl && <a href={receipt.sourceUrl} target="_blank" rel="noreferrer">Open public source</a>}{receipt.batchId && <small>Batch: {receipt.batchId}</small>}{receipt.receiptId && <small>Receipt: {receipt.receiptId}</small>}</div>)}
-          <h3>Reviewer notes</h3><div className="noteBox"><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add local reviewer note..." /><button onClick={saveNote}>Save note</button></div>{selected.notes.length ? <ul>{selected.notes.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p className="muted">No notes yet.</p>}
-        </aside>
+        <aside className="panel drawer"><p className="eyebrow">Selected record</p><h2>{selected.name}</h2><p className="muted">{selected.city ? `${selected.city}, ` : ""}{selected.county}, {selected.state} • {selected.precision}</p><div className="miniGrid"><Stat label="MW" value={selected.capacityMW || "unknown"} /><Stat label="Receipts" value={selected.receipts.length} /><Stat label="Quality" value={`${selectedQuality.score}%`} /></div><section className="sourceQualityCard"><div className="panelHeader compactHeader"><div><p className="eyebrow">Source quality</p><h3>{selectedQuality.score}% <span className={bandChipClass(selectedQuality.band)}>{selectedQuality.band}</span></h3></div><small>{selectedQuality.digest}</small></div><div className="qualityDetails"><span>{selectedQuality.receiptCount} receipt(s)</span><span>{selectedQuality.sourceTypeCount} source type(s)</span><span>{selectedQuality.publicLinkCoverage}% public-link coverage</span><span>Newest receipt: {selectedQuality.newestReceiptAgeDays === null ? "unknown" : `${selectedQuality.newestReceiptAgeDays} day(s)`}</span><span>High-impact: {selectedQuality.highImpactCoverage}</span></div>{selectedQuality.gaps.length > 0 && <><h4>Quality gaps</h4><ul>{selectedQuality.gaps.map((gap) => <li key={gap}>{gap}</li>)}</ul></>}{selectedQuality.strengths.length > 0 && <><h4>Strengths</h4><ul>{selectedQuality.strengths.map((strength) => <li key={strength}>{strength}</li>)}</ul></>}</section><h3>Canonical decision</h3>{canonicalBlockers(selected).length ? <ul>{canonicalBlockers(selected).map((item) => <li key={item}>{item}</li>)}</ul> : <p className="okText">Record passes the current canonical gate.</p>}<button onClick={promoteSelected}>Promote selected locally</button><section className="receiptEditor" aria-label="Receipt editor"><div className="panelHeader compactHeader"><div><p className="eyebrow">v1.3 Receipt Editor</p><h3>Add a public source receipt</h3></div><button onClick={exportSelectedReceiptPacket}>Export Selected Receipt Packet</button></div><div className="receiptGrid"><label>Source name<input value={receiptDraft.sourceName} onChange={(event) => updateReceiptDraft("sourceName", event.target.value)} placeholder="County permit portal, utility filing, operator release..." /></label><label>Source type<select value={receiptDraft.sourceType} onChange={(event) => updateReceiptDraft("sourceType", event.target.value as SourceType)}>{validSourceTypes.map((sourceType) => <option key={sourceType} value={sourceType}>{sourceType}</option>)}</select></label><label>Public URL<input value={receiptDraft.sourceUrl} onChange={(event) => updateReceiptDraft("sourceUrl", event.target.value)} placeholder="https://..." /></label><label>Retrieved date<input type="date" value={receiptDraft.retrievedAt} onChange={(event) => updateReceiptDraft("retrievedAt", event.target.value)} /></label><label>Confidence<select value={receiptDraft.confidence} onChange={(event) => updateReceiptDraft("confidence", event.target.value as Confidence)}><option value="high">high</option><option value="medium">medium</option><option value="low">low</option></select></label></div><label>Claim supported by this source<textarea value={receiptDraft.claim} onChange={(event) => updateReceiptDraft("claim", event.target.value)} placeholder="Describe the exact claim this public source supports." /></label>{receiptDraftWarnings.length > 0 && <div className="globalWarnings receiptWarnings">{receiptDraftWarnings.map((warning) => <span key={`${warning.field}-${warning.message}`} className={`chip ${warning.level === "blocking" ? "danger" : warning.level === "info" ? "info" : "warn"}`}>{warning.level}: {warning.message}</span>)}</div>}<div className="importActions"><button onClick={addReceiptToSelected} disabled={hasBlockingReceiptDraft}>Add Receipt to Selected</button><button onClick={clearReceiptDraft}>Clear Receipt Draft</button><button onClick={exportReceiptHistory} disabled={receiptHistory.length === 0}>Export Receipt History</button></div>{selectedReceiptHistory.length > 0 && <p className="muted">{selectedReceiptHistory.length} receipt edit(s) recorded for this selected record.</p>}</section><h3>Receipts</h3>{selected.receipts.map((receipt, index) => <div key={receipt.receiptId || `${receipt.sourceName}-${index}`} className="receipt"><strong>{receipt.sourceName}</strong><span>{receipt.sourceType} • {receipt.confidence} • {new Date(receipt.retrievedAt).toLocaleDateString()}</span><p>{receipt.claim}</p>{receipt.sourceUrl && <a href={receipt.sourceUrl} target="_blank" rel="noreferrer">Open public source</a>}{receipt.batchId && <small>Batch: {receipt.batchId}</small>}{receipt.receiptId && <small>Receipt: {receipt.receiptId}</small>}</div>)}<h3>Reviewer notes</h3><div className="noteBox"><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add local reviewer note..." /><button onClick={saveNote}>Save note</button></div>{selected.notes.length ? <ul>{selected.notes.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p className="muted">No notes yet.</p>}</aside>
       </section>
     </main>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number | string }) {
-  return <div className="stat"><span>{label}</span><strong>{value}</strong></div>;
-}
+function Stat({ label, value }: { label: string; value: number | string }) { return <div className="stat"><span>{label}</span><strong>{value}</strong></div>; }
 
 function downloadJson(filename: string, payload: unknown) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
