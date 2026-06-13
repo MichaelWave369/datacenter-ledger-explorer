@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, release library integrity checks, a map-safe U.S. record scaffold, facility geo record schemas, facility geo import batches, geo staging bridge packets, draft geo intake review decisions, approved geo map-feed packets, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, release library integrity checks, a map-safe U.S. record scaffold, facility geo record schemas, facility geo import batches, geo staging bridge packets, draft geo intake review decisions, approved geo map-feed packets, map candidate QA reports, final map layer export gates, and canonical export packets.
 
 ## Live app
 
@@ -47,7 +47,9 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v3.5 geo import staging bridge
 - v3.6 draft geo intake review
 - v3.7 approved geo intake map feed
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, release library exports, release integrity reports, map layer exports, geo schema exports, geo import batches, geo staging bridge packets, geo intake review packets, and approved geo map-feed packets
+- v3.8 map candidate QA dashboard
+- v3.9 final map layer export gate
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, release library exports, release integrity reports, map layer exports, geo schema exports, geo import batches, geo staging bridge packets, geo intake review packets, approved geo map-feed packets, map candidate QA reports, and final map layer packets
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -61,7 +63,33 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public-data safety docs
 - GitHub Pages deploy workflow
 
-The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, release library lineage, release library integrity checks, map-safe U.S. record layers, facility geo schemas, facility geo import batches, geo staging bridge packets, draft geo intake review packets, and approved geo map-feed packets. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, release library lineage, release library integrity checks, map-safe U.S. record layers, facility geo schemas, facility geo import batches, geo staging bridge packets, draft geo intake review packets, approved geo map-feed packets, map candidate QA reports, and final map layer export gates. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v3.9 final map layer export gate
+
+v3.9 requires a matching v3.8 QA report before a v3.7 approved geo map feed can become an exportable final map-layer packet:
+
+- load the latest `DataCenterLedger.ApprovedGeoMapFeed.v3.7` and `DataCenterLedger.MapCandidateQAReport.v3.8` from browser storage
+- paste or load feed and QA JSON files
+- block export when the QA report is missing, empty, mismatched, or has unresolved blockers
+- allow clear QA reports when the source feed digest matches
+- require reviewer name, reviewer note, and warning acceptance for review-status QA reports
+- export `DataCenterLedger.FinalMapLayer.v3.9`
+- store the latest export-ready packet under `datacenter-ledger.final-map-layer.v3.9`
+
+A final map layer packet is still a local export artifact. It does not prove source truth, certify facility status, discover facilities, authorize sensitive publication, or make a complete national map.
+
+## v3.8 map candidate QA dashboard
+
+v3.8 audits approved map-feed records before final map layer export:
+
+- load the latest `DataCenterLedger.ApprovedGeoMapFeed.v3.7` from browser storage
+- paste or load a v3.7 approved map-feed JSON file
+- flag missing evidence URLs, low confidence, public-address precision, duplicate record IDs, duplicate digests, coordinate gaps, and upstream warnings
+- export `DataCenterLedger.MapCandidateQAReport.v3.8`
+- store the latest QA report under `datacenter-ledger.map-candidate-qa-report.v3.8`
+
+A map candidate QA report is a local review signal. It does not prove source truth, certify facility status, discover facilities, authorize sensitive publication, or make a complete national map.
 
 ## v3.7 approved geo intake map feed
 
