@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, and canonical export packets.
 
 ## Live app
 
@@ -34,11 +34,13 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v2.2 canonical diff + change review
 - v2.3 change approval queue
 - v2.4 approval role profiles
+- v2.5 two-person approval rule
 - local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, and session restore
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
+- two-person separation gate for approve/reject decisions
 - approve/reject decisions with reviewer notes
-- local change receipts with approval linkage
+- local change receipts with approval linkage and two-person gate snapshots
 - selected-record audit timeline export
 - checklist-backed promotion receipts
 - record and region public brief exports
@@ -48,6 +50,21 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - GitHub Pages deploy workflow
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.5 two-person approval rule
+
+v2.5 adds local separation-of-duty gates to the change approval queue:
+
+- the submitter of a proposed change cannot approve or reject that same request
+- the decision reviewer must use a different active role from the submitter role
+- `admin` does not bypass the two-person separation rule
+- pending approval requests preserve requester name, requester role, field deltas, before/after snapshots, quality snapshots, canonical blockers, submitter role gate, and policy text
+- approve/reject decisions preserve decision reviewer, decision role, role permission gate, two-person gate result, note, timestamp, and digest
+- approved requests apply the record change and create a local `ChangeReceipt`
+- rejected requests preserve the decision receipt and leave the record unchanged
+- exports include `DataCenterLedger.ChangeApprovalQueue.v2.5`, `DataCenterLedger.Workspace.v2.5`, `DataCenterLedger.CanonicalRegistry.v2.5`, and `DataCenterLedger.RoleProfile.v2.5`
+
+The two-person rule is a local governance safeguard. It is not authentication, not legal authorization, not proof that source data is true, and not permission to publish private or sensitive infrastructure details.
 
 ## v2.4 approval role profiles
 
