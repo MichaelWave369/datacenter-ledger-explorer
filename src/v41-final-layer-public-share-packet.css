@@ -1,0 +1,119 @@
+.public-share-panel {
+  margin: 24px auto;
+  max-width: 1180px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 24px;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.74);
+  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.38);
+}
+
+.public-share-header h2 {
+  margin: 6px 0 8px;
+  font-size: clamp(1.5rem, 2vw, 2.1rem);
+}
+
+.public-share-header p:last-child {
+  max-width: 860px;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.public-share-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.public-share-controls button,
+.public-share-file {
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #e0f2fe;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.public-share-file input {
+  display: none;
+}
+
+.public-share-panel textarea {
+  width: 100%;
+  min-height: 150px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  padding: 14px;
+  background: rgba(2, 6, 23, 0.56);
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.public-share-summary,
+.public-share-badges,
+.public-share-clusters,
+.public-share-boundary,
+.public-share-omitted {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.public-share-summary span,
+.public-share-badges span,
+.public-share-clusters span,
+.public-share-boundary span,
+.public-share-omitted span {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: rgba(30, 41, 59, 0.7);
+  color: rgba(226, 232, 240, 0.88);
+  font-size: 0.85rem;
+}
+
+.public-share-omitted strong {
+  align-self: center;
+  color: #bfdbfe;
+  margin-right: 4px;
+}
+
+.public-share-results {
+  overflow-x: auto;
+}
+
+.public-share-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  min-width: 900px;
+}
+
+.public-share-table th,
+.public-share-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.public-share-table th {
+  color: #bfdbfe;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.public-share-table small,
+.public-share-empty {
+  color: rgba(226, 232, 240, 0.62);
+}
+
+.public-share-empty {
+  padding: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+  border-radius: 18px;
+}
