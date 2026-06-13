@@ -5,13 +5,16 @@ type Lifecycle = "raw_import" | "local_working" | "promoted_public" | "rejected_
 type Precision = "public_dataset" | "city_level" | "county_level" | "state_level" | "unknown";
 type Confidence = "high" | "medium" | "low";
 type SourceType = "public_dataset" | "permit" | "utility" | "operator" | "news" | "review" | "other";
+type WarningLevel = "info" | "warning" | "blocking";
 
 type Receipt = {
   sourceName: string;
   sourceType: SourceType;
+  sourceUrl?: string;
   retrievedAt: string;
   claim: string;
   confidence: Confidence;
+  batchId?: string;
 };
 
 type LedgerRecord = {
@@ -29,6 +32,7 @@ type LedgerRecord = {
   reviewWarnings: string[];
   receipts: Receipt[];
   notes: string[];
+  importBatchId?: string;
 };
 
 type SafetyStep = {
@@ -36,7 +40,42 @@ type SafetyStep = {
   body: string;
 };
 
-const APP_VERSION = "1.1.0";
+type ImportWarning = {
+  rowNumber: number;
+  level: WarningLevel;
+  field?: string;
+  message: string;
+};
+
+type ImportPreviewRow = {
+  rowNumber: number;
+  record: LedgerRecord;
+  warnings: ImportWarning[];
+};
+
+type ImportPreview = {
+  batchId: string;
+  createdAt: string;
+  origin: string;
+  rows: ImportPreviewRow[];
+  warnings: ImportWarning[];
+  digest: string;
+};
+
+type ImportHistoryItem = {
+  batchId: string;
+  committedAt: string;
+  origin: string;
+  rowsCommitted: number;
+  warningCount: number;
+  digest: string;
+};
+
+const APP_VERSION = "1.2.0";
+
+const validStatuses: Status[] = ["operating", "planned", "under_construction", "approved", "unknown"];
+const validSourceTypes: SourceType[] = ["public_dataset", "permit", "utility", "operator", "news", "review", "other"];
+const validPrecisions: Precision[] = ["public_dataset", "city_level", "county_level", "state_level", "unknown"];
 
 const publicBoundary = [
   "Public-data only",
@@ -52,18 +91,22 @@ const safeUseSteps: SafetyStep[] = [
     body: "Import only public datasets, permits, utility filings, operator announcements, or news records you can cite."
   },
   {
+    title: "Preview before commit",
+    body: "Use the v1.2 import workbench to inspect normalized rows, warnings, source posture, and batch receipts before adding records."
+  },
+  {
     title: "Treat every import as a claim",
     body: "Raw rows enter the Ledger as review candidates. A source receipt explains who said what and when it was retrieved."
   },
   {
     title: "Promote slowly",
     body: "A public record should have receipts, confidence, clear precision, and no open review warnings before it becomes canonical."
-  },
-  {
-    title: "Avoid sensitive enrichment",
-    body: "Do not add private access details, security layouts, unreviewed coordinates, or anything that turns the workbench into a target map."
   }
 ];
+
+const sampleCsv = `id,name,operator,status,state,county,city,capacity_mw,sqft,confidence,source,source_type,source_url,source_claim,retrieved_at
+dcl-public-review-001,Sample Public Atlas Candidate,Unknown,operating,VA,Loudoun County,Ashburn,0,0,72,Example public dataset,public_dataset,https://example.org/public-dataset,"Public dataset row for review workflow testing.",2026-06-13
+dcl-public-review-002,Sample Permit Review Candidate,Unknown,approved,IA,Polk County,Des Moines,120,0,66,Example county permit,permit,https://example.org/permit,"Permit mentions a proposed facility; MW claim needs a second source.",2026-06-13`;
 
 const starterRecords: LedgerRecord[] = [
   {
@@ -162,45 +205,216 @@ function canonicalBlockers(record: LedgerRecord) {
   return blockers;
 }
 
-function parseCsv(text: string): LedgerRecord[] {
-  const lines = text.trim().split(/\r?\n/).filter(Boolean);
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map((item) => item.trim().toLowerCase());
-  const cell = (values: string[], key: string) => values[headers.indexOf(key)]?.trim() || "";
+function splitCsvLine(line: string) {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
 
-  return lines.slice(1).map((line, index) => {
-    const values = line.split(",");
-    const name = cell(values, "name") || "Unnamed public record";
-    const sourceName = cell(values, "source") || "CSV import";
-    const sourceType = (cell(values, "source_type") as SourceType) || "public_dataset";
-    const city = cell(values, "city") || undefined;
-    const precision = city ? "city_level" : cell(values, "county") ? "county_level" : "state_level";
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
 
-    return {
-      id: cell(values, "id") || digest({ line, index }),
+    if (char === "\"" && inQuotes && next === "\"") {
+      current += "\"";
+      index += 1;
+    } else if (char === "\"") {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  values.push(current.trim());
+  return values;
+}
+
+function parseCsvTable(text: string) {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length === 0) return { headers: [] as string[], rows: [] as { rowNumber: number; row: Record<string, string> }[] };
+
+  const headers = splitCsvLine(lines[0]).map((item) => item.trim().toLowerCase());
+  const rows = lines.slice(1).map((line, index) => {
+    const values = splitCsvLine(line);
+    const row: Record<string, string> = {};
+    headers.forEach((header, headerIndex) => {
+      row[header] = values[headerIndex]?.trim() || "";
+    });
+    return { rowNumber: index + 2, row };
+  });
+
+  return { headers, rows };
+}
+
+function readCell(row: Record<string, string>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = row[key]?.trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function pushWarning(warnings: ImportWarning[], rowNumber: number, level: WarningLevel, message: string, field?: string) {
+  warnings.push({ rowNumber, level, field, message });
+}
+
+function normalizeStatus(value: string, rowNumber: number, warnings: ImportWarning[]): Status {
+  const normalized = value.toLowerCase().trim().replace(/\s+/g, "_") as Status;
+  if (validStatuses.includes(normalized)) return normalized;
+  if (value) pushWarning(warnings, rowNumber, "warning", `Unsupported status "${value}" normalized to unknown.`, "status");
+  return "unknown";
+}
+
+function normalizeSourceType(value: string, rowNumber: number, warnings: ImportWarning[]): SourceType {
+  const normalized = value.toLowerCase().trim().replace(/\s+/g, "_") as SourceType;
+  if (validSourceTypes.includes(normalized)) return normalized;
+  if (value) pushWarning(warnings, rowNumber, "warning", `Unsupported source_type "${value}" normalized to other.`, "source_type");
+  return "other";
+}
+
+function normalizeConfidence(value: string, rowNumber: number, warnings: ImportWarning[]) {
+  const parsed = Number(value);
+  if (!value) {
+    pushWarning(warnings, rowNumber, "warning", "Missing confidence; defaulted to 50.", "confidence");
+    return 50;
+  }
+  if (Number.isNaN(parsed)) {
+    pushWarning(warnings, rowNumber, "warning", `Invalid confidence "${value}"; defaulted to 50.`, "confidence");
+    return 50;
+  }
+  const clamped = Math.max(0, Math.min(100, parsed));
+  if (clamped !== parsed) pushWarning(warnings, rowNumber, "warning", "Confidence was outside 0-100 and has been clamped.", "confidence");
+  return clamped;
+}
+
+function confidenceLabel(score: number): Confidence {
+  if (score >= 80) return "high";
+  if (score >= 55) return "medium";
+  return "low";
+}
+
+function normalizePrecision(row: Record<string, string>, rowNumber: number, warnings: ImportWarning[]): Precision {
+  const raw = readCell(row, "precision", "location_precision").toLowerCase().trim().replace(/\s+/g, "_") as Precision;
+  if (raw && validPrecisions.includes(raw)) return raw;
+  if (raw) pushWarning(warnings, rowNumber, "warning", `Unsupported precision "${raw}" inferred from city/county/state fields.`, "precision");
+  if (readCell(row, "city")) return "city_level";
+  if (readCell(row, "county")) return "county_level";
+  if (readCell(row, "state", "state_abb")) return "state_level";
+  return "unknown";
+}
+
+function buildImportPreview(text: string, origin: string, existingRecords: LedgerRecord[]): ImportPreview {
+  const createdAt = nowIso();
+  const batchId = digest({ text, origin, createdAt });
+  const { headers, rows } = parseCsvTable(text);
+  const globalWarnings: ImportWarning[] = [];
+  const existingIds = new Set(existingRecords.map((record) => record.id));
+  const previewIds = new Set<string>();
+
+  if (headers.length === 0) {
+    pushWarning(globalWarnings, 1, "blocking", "CSV text is empty or missing a header row.");
+  }
+
+  const recommendedColumns = ["name", "state", "source"];
+  for (const column of recommendedColumns) {
+    if (!headers.includes(column) && !(column === "state" && headers.includes("state_abb"))) {
+      pushWarning(globalWarnings, 1, "warning", `Recommended column "${column}" is missing.`, column);
+    }
+  }
+
+  const previewRows = rows.map(({ rowNumber, row }) => {
+    const warnings: ImportWarning[] = [];
+    const name = readCell(row, "name") || "Unnamed public record";
+    const operator = readCell(row, "operator", "owner") || "Unknown";
+    const state = readCell(row, "state", "state_abb") || "UNKNOWN";
+    const county = readCell(row, "county") || "Unknown county";
+    const city = readCell(row, "city") || undefined;
+    const id = readCell(row, "id") || digest({ row, rowNumber, batchId });
+    const sourceName = readCell(row, "source", "source_name") || "CSV import";
+    const sourceUrl = readCell(row, "source_url", "url") || undefined;
+    const sourceClaim = readCell(row, "source_claim", "claim") || `Imported row for ${name}.`;
+    const retrievedAt = readCell(row, "retrieved_at", "retrieved") || createdAt;
+    const status = normalizeStatus(readCell(row, "status"), rowNumber, warnings);
+    const sourceType = normalizeSourceType(readCell(row, "source_type"), rowNumber, warnings);
+    const confidenceScore = normalizeConfidence(readCell(row, "confidence", "confidence_score"), rowNumber, warnings);
+    const precision = normalizePrecision(row, rowNumber, warnings);
+    const capacityRaw = readCell(row, "capacity_mw", "power_mw", "mw");
+    const capacityMW = capacityRaw ? Number(capacityRaw) : undefined;
+
+    if (existingIds.has(id)) pushWarning(warnings, rowNumber, "blocking", `Record id "${id}" already exists in the workspace.`, "id");
+    if (previewIds.has(id)) pushWarning(warnings, rowNumber, "blocking", `Record id "${id}" appears more than once in this import batch.`, "id");
+    previewIds.add(id);
+
+    if (!readCell(row, "name")) pushWarning(warnings, rowNumber, "warning", "Missing name; using Unnamed public record.", "name");
+    if (!readCell(row, "state", "state_abb")) pushWarning(warnings, rowNumber, "blocking", "Missing state/state_abb.", "state");
+    if (!readCell(row, "county") && !readCell(row, "city")) pushWarning(warnings, rowNumber, "warning", "Missing county and city; precision will be state-level or unknown.", "county");
+    if (!readCell(row, "source", "source_name")) pushWarning(warnings, rowNumber, "warning", "Missing source name; receipt will need review.", "source");
+    if (!sourceUrl) pushWarning(warnings, rowNumber, "info", "No source_url supplied; reviewers should preserve a public link outside the app.", "source_url");
+    if (readCell(row, "lat") || readCell(row, "lon") || readCell(row, "longitude") || readCell(row, "latitude")) {
+      pushWarning(warnings, rowNumber, "warning", "Coordinate columns detected. The app does not display them; confirm they are already public before keeping them in external datasets.", "lat/lon");
+    }
+    if (capacityRaw && Number.isNaN(Number(capacityRaw))) {
+      pushWarning(warnings, rowNumber, "warning", `Invalid capacity_mw "${capacityRaw}" ignored.`, "capacity_mw");
+    }
+    if (capacityMW && capacityMW > 0) {
+      pushWarning(warnings, rowNumber, "warning", "MW capacity is a high-impact claim and should have a second independent source before promotion.", "capacity_mw");
+    }
+
+    const reviewWarnings = warnings
+      .filter((warning) => warning.level !== "info")
+      .map((warning) => warning.message);
+
+    const record: LedgerRecord = {
+      id,
       name,
-      operator: cell(values, "operator") || "Unknown",
-      status: (cell(values, "status") as Status) || "unknown",
-      state: cell(values, "state") || cell(values, "state_abb") || "UNKNOWN",
-      county: cell(values, "county") || "Unknown county",
+      operator,
+      status,
+      state,
+      county,
       city,
       precision,
-      capacityMW: Number(cell(values, "capacity_mw")) || undefined,
+      capacityMW: capacityMW && !Number.isNaN(capacityMW) ? capacityMW : undefined,
       lifecycle: "raw_import",
-      confidenceScore: Number(cell(values, "confidence")) || 50,
-      reviewWarnings: ["Imported row needs human review before promotion."],
+      confidenceScore,
+      reviewWarnings: ["Imported row needs human review before promotion.", ...reviewWarnings],
       receipts: [
         {
           sourceName,
           sourceType,
-          retrievedAt: nowIso(),
-          claim: `Imported row for ${name}.`,
-          confidence: "medium"
+          sourceUrl,
+          retrievedAt: new Date(retrievedAt).toString() === "Invalid Date" ? createdAt : new Date(retrievedAt).toISOString(),
+          claim: sourceClaim,
+          confidence: confidenceLabel(confidenceScore),
+          batchId
         }
       ],
-      notes: []
+      notes: [`Imported through batch ${batchId} from ${origin}.`],
+      importBatchId: batchId
     };
+
+    return { rowNumber, record, warnings };
   });
+
+  return {
+    batchId,
+    createdAt,
+    origin,
+    rows: previewRows,
+    warnings: globalWarnings,
+    digest: digest({ batchId, rows: previewRows.map((row) => row.record), globalWarnings })
+  };
+}
+
+function allPreviewWarnings(preview?: ImportPreview | null) {
+  if (!preview) return [];
+  return [...preview.warnings, ...preview.rows.flatMap((row) => row.warnings)];
+}
+
+function warningCount(preview: ImportPreview | null, level?: WarningLevel) {
+  const warnings = allPreviewWarnings(preview);
+  return level ? warnings.filter((warning) => warning.level === level).length : warnings.length;
 }
 
 export default function App() {
@@ -210,12 +424,17 @@ export default function App() {
   const [stateFilter, setStateFilter] = useState("all");
   const [mode, setMode] = useState<"all" | "canonical" | "review">("all");
   const [note, setNote] = useState("");
+  const [importText, setImportText] = useState("");
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importHistory, setImportHistory] = useState<ImportHistoryItem[]>([]);
 
   const selected = records.find((record) => record.id === selectedId) || records[0];
   const states = useMemo(() => Array.from(new Set(records.map((record) => record.state))).sort(), [records]);
   const canonicalRecords = useMemo(() => records.filter((record) => canonicalBlockers(record).length === 0), [records]);
   const reviewRecords = useMemo(() => records.filter((record) => canonicalBlockers(record).length > 0), [records]);
   const demoRecords = useMemo(() => records.filter((record) => record.id.startsWith("dcl-demo-")), [records]);
+  const importWarnings = allPreviewWarnings(importPreview);
+  const hasBlockingImport = importWarnings.some((warning) => warning.level === "blocking");
 
   const visibleRecords = useMemo(() => records.filter((record) => {
     const haystack = `${record.name} ${record.operator} ${record.county} ${record.city || ""}`.toLowerCase();
@@ -245,10 +464,44 @@ export default function App() {
     setNote("");
   }
 
-  async function importFile(file: File) {
-    const imported = parseCsv(await file.text());
-    setRecords((items) => [...items, ...imported]);
-    if (imported[0]) setSelectedId(imported[0].id);
+  function previewImportFromText(origin = "pasted CSV") {
+    setImportPreview(buildImportPreview(importText, origin, records));
+  }
+
+  async function loadCsvFile(file: File) {
+    const text = await file.text();
+    setImportText(text);
+    setImportPreview(buildImportPreview(text, file.name, records));
+  }
+
+  function loadSampleImport() {
+    setImportText(sampleCsv);
+    setImportPreview(buildImportPreview(sampleCsv, "sample CSV", records));
+  }
+
+  function commitImportPreview() {
+    if (!importPreview || hasBlockingImport) return;
+    const importedRecords = importPreview.rows.map((row) => row.record);
+    setRecords((items) => [...items, ...importedRecords]);
+    setImportHistory((items) => [
+      {
+        batchId: importPreview.batchId,
+        committedAt: nowIso(),
+        origin: importPreview.origin,
+        rowsCommitted: importedRecords.length,
+        warningCount: warningCount(importPreview),
+        digest: importPreview.digest
+      },
+      ...items
+    ]);
+    if (importedRecords[0]) setSelectedId(importedRecords[0].id);
+    setImportPreview(null);
+    setImportText("");
+  }
+
+  function clearImportWorkbench() {
+    setImportPreview(null);
+    setImportText("");
   }
 
   function resetDemoData() {
@@ -257,16 +510,20 @@ export default function App() {
     setQuery("");
     setStateFilter("all");
     setMode("all");
+    setImportPreview(null);
+    setImportText("");
+    setImportHistory([]);
   }
 
   function exportLedger() {
     downloadJson("datacenter-ledger-export.json", {
-      schema: "DataCenterLedger.Export.v1.1-public-launch",
+      schema: "DataCenterLedger.Export.v1.2-import-workbench",
       generatedAt: nowIso(),
       appVersion: APP_VERSION,
       boundary: publicBoundary,
+      importHistory,
       records,
-      digest: digest(records)
+      digest: digest({ records, importHistory })
     });
   }
 
@@ -278,7 +535,7 @@ export default function App() {
       blockers: canonicalBlockers(record)
     }));
     downloadJson("datacenter-ledger-canonical.json", {
-      schema: "DataCenterLedger.CanonicalRegistry.v1.1-public-launch",
+      schema: "DataCenterLedger.CanonicalRegistry.v1.2-import-workbench",
       generatedAt: nowIso(),
       appVersion: APP_VERSION,
       included,
@@ -289,7 +546,7 @@ export default function App() {
 
   function exportLaunchPacket() {
     downloadJson("datacenter-ledger-public-launch-packet.json", {
-      schema: "DataCenterLedger.PublicLaunchPacket.v1.1",
+      schema: "DataCenterLedger.PublicLaunchPacket.v1.2",
       generatedAt: nowIso(),
       appVersion: APP_VERSION,
       purpose: "Public-safe civic transparency workbench for reviewing U.S. data center records as source-backed claims.",
@@ -300,9 +557,36 @@ export default function App() {
         demoRecords: demoRecords.length,
         canonicalRecords: canonicalRecords.length,
         needsReview: reviewRecords.length,
-        receipts: records.reduce((sum, record) => sum + record.receipts.length, 0)
+        receipts: records.reduce((sum, record) => sum + record.receipts.length, 0),
+        importBatches: importHistory.length
       },
-      digest: digest({ records, publicBoundary, safeUseSteps })
+      digest: digest({ records, importHistory, publicBoundary, safeUseSteps })
+    });
+  }
+
+  function exportImportPreview() {
+    if (!importPreview) return;
+    downloadJson("datacenter-ledger-import-preview.json", {
+      schema: "DataCenterLedger.ImportPreview.v1.2",
+      generatedAt: nowIso(),
+      appVersion: APP_VERSION,
+      preview: importPreview,
+      warningSummary: {
+        total: warningCount(importPreview),
+        blocking: warningCount(importPreview, "blocking"),
+        warning: warningCount(importPreview, "warning"),
+        info: warningCount(importPreview, "info")
+      }
+    });
+  }
+
+  function exportImportHistory() {
+    downloadJson("datacenter-ledger-import-history.json", {
+      schema: "DataCenterLedger.ImportHistory.v1.2",
+      generatedAt: nowIso(),
+      appVersion: APP_VERSION,
+      importHistory,
+      digest: digest(importHistory)
     });
   }
 
@@ -310,11 +594,11 @@ export default function App() {
     <main className="shell">
       <header className="hero launchHero">
         <div>
-          <p className="eyebrow">v{APP_VERSION} public launch sprint • local-first • receipt-backed</p>
+          <p className="eyebrow">v{APP_VERSION} import workbench sprint • local-first • receipt-backed</p>
           <h1>DataCenterLedger Explorer</h1>
           <p>
             A civic transparency workbench for reviewing public data center records as claims — with receipts,
-            confidence scores, lifecycle decisions, canonical exports, and a clear safety boundary.
+            confidence scores, import review gates, lifecycle decisions, canonical exports, and a clear safety boundary.
           </p>
           <div className="boundaryPills" aria-label="Public safety boundary">
             {publicBoundary.map((item) => <span key={item}>{item}</span>)}
@@ -330,10 +614,10 @@ export default function App() {
       <section className="launchGrid" aria-label="Launch overview">
         <div className="panel introPanel">
           <p className="eyebrow">What this is</p>
-          <h2>Public records in, reviewable Ledger out.</h2>
+          <h2>Public records in, reviewed Ledger out.</h2>
           <p>
-            Import a CSV, inspect each row as a source-backed claim, preserve the receipts, add local reviewer notes,
-            and export either the full working Ledger or only records that pass the canonical gate.
+            Paste or load a CSV, preview normalized rows, inspect warnings before commit, preserve source receipts,
+            add local reviewer notes, and export either the full working Ledger or only records that pass the canonical gate.
           </p>
         </div>
         <div className="panel introPanel cautionPanel">
@@ -352,6 +636,7 @@ export default function App() {
         <Stat label="Receipts" value={records.reduce((sum, record) => sum + record.receipts.length, 0)} />
         <Stat label="Needs review" value={reviewRecords.length} />
         <Stat label="Demo rows" value={demoRecords.length} />
+        <Stat label="Import batches" value={importHistory.length} />
       </section>
 
       <section className="panel walkthrough">
@@ -370,6 +655,83 @@ export default function App() {
         </div>
       </section>
 
+      <section className="panel importWorkbench" aria-label="Import review workbench">
+        <div className="panelHeader">
+          <div>
+            <p className="eyebrow">v1.2 Import Review Workbench</p>
+            <h2>Preview CSV rows before they enter the Ledger</h2>
+            <p className="muted">
+              Paste normalized CSV or load a file. The app creates a batch preview, source receipts, validation warnings,
+              and a deterministic preview digest before anything is committed.
+            </p>
+          </div>
+          <div className="heroActions">
+            <button onClick={loadSampleImport}>Load Sample CSV</button>
+            <label className="fileButton">Load CSV file<input type="file" accept=".csv" onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void loadCsvFile(file);
+              event.currentTarget.value = "";
+            }} /></label>
+          </div>
+        </div>
+
+        <textarea
+          className="csvTextArea"
+          value={importText}
+          onChange={(event) => setImportText(event.target.value)}
+          placeholder="Paste normalized CSV here. Required posture: public source, state, reviewable claim, and receipt context."
+        />
+
+        <div className="importActions">
+          <button onClick={() => previewImportFromText()} disabled={!importText.trim()}>Preview CSV</button>
+          <button onClick={exportImportPreview} disabled={!importPreview}>Export Preview Packet</button>
+          <button onClick={commitImportPreview} disabled={!importPreview || hasBlockingImport}>Commit Preview to Ledger</button>
+          <button onClick={exportImportHistory} disabled={importHistory.length === 0}>Export Import History</button>
+          <button onClick={clearImportWorkbench}>Clear Import Workbench</button>
+        </div>
+
+        {importPreview ? (
+          <div className="previewPanel">
+            <div className="previewSummary">
+              <Stat label="Preview rows" value={importPreview.rows.length} />
+              <Stat label="Blocking" value={warningCount(importPreview, "blocking")} />
+              <Stat label="Warnings" value={warningCount(importPreview, "warning")} />
+              <Stat label="Info" value={warningCount(importPreview, "info")} />
+            </div>
+            <div className="batchMeta">
+              <span><strong>Batch:</strong> {importPreview.batchId}</span>
+              <span><strong>Origin:</strong> {importPreview.origin}</span>
+              <span><strong>Digest:</strong> {importPreview.digest}</span>
+            </div>
+            {hasBlockingImport && <p className="dangerText">Blocking issues must be fixed before this batch can be committed.</p>}
+            <div className="tableWrap previewTable">
+              <table>
+                <thead><tr><th>Row</th><th>Name</th><th>State</th><th>Source</th><th>Warnings</th></tr></thead>
+                <tbody>
+                  {importPreview.rows.map((row) => (
+                    <tr key={`${importPreview.batchId}-${row.rowNumber}`}>
+                      <td>{row.rowNumber}</td>
+                      <td><strong>{row.record.name}</strong><small>{row.record.operator}</small></td>
+                      <td>{row.record.state}</td>
+                      <td>{row.record.receipts[0]?.sourceName || "Missing source"}</td>
+                      <td>
+                        {row.warnings.length ? row.warnings.map((warning) => (
+                          <span key={`${warning.field}-${warning.message}`} className={`chip ${warning.level === "blocking" ? "danger" : warning.level === "info" ? "info" : "warn"}`}>
+                            {warning.level}: {warning.message}
+                          </span>
+                        )) : <span className="chip ok">ready for review</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <p className="muted">No active preview yet. Load the sample CSV or paste public-source rows to begin.</p>
+        )}
+      </section>
+
       <section className="toolbar">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records, operators, counties..." />
         <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}>
@@ -381,7 +743,6 @@ export default function App() {
           <option value="canonical">Canonical only</option>
           <option value="review">Needs review</option>
         </select>
-        <label className="fileButton">Import CSV<input type="file" accept=".csv" onChange={(event) => event.target.files?.[0] && importFile(event.target.files[0])} /></label>
         <button onClick={resetDemoData}>Reset Demo</button>
       </section>
 
@@ -446,6 +807,8 @@ export default function App() {
               <strong>{receipt.sourceName}</strong>
               <span>{receipt.sourceType} • {receipt.confidence} • {new Date(receipt.retrievedAt).toLocaleDateString()}</span>
               <p>{receipt.claim}</p>
+              {receipt.sourceUrl && <a href={receipt.sourceUrl} target="_blank" rel="noreferrer">Open public source</a>}
+              {receipt.batchId && <small>Batch: {receipt.batchId}</small>}
             </div>
           ))}
 
