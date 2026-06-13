@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, and canonical export packets.
 
 ## Live app
 
@@ -30,6 +30,7 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v1.8 review queue + task board
 - v1.9 public brief generator
 - v2.0 canonical review mode
+- v2.1 promotion audit timeline
 - paste/upload CSV preview before commit
 - selected-record source receipt editor
 - state/county regional summaries without exact coordinates
@@ -38,6 +39,7 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - generated and manual local review tasks
 - record and region public brief exports
 - checklist-backed promotion receipts
+- selected-record audit timeline export
 - canonical review packets
 - receipt-backed records
 - canonical / non-canonical filtering
@@ -46,6 +48,24 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - GitHub Pages deploy workflow
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.1 promotion audit timeline
+
+v2.1 adds a selected-record audit timeline that gathers review history into one exportable trail:
+
+- import batch events
+- source receipt events
+- receipt edit events
+- generated and manual task events
+- source quality evaluation events
+- public brief generation events
+- reviewed lifecycle marker
+- promotion receipt events
+- local session restore markers
+- reviewer note events
+- export `DataCenterLedger.PromotionAuditTimeline.v2.1`
+
+The timeline is a local review chronology. It does not prove a record is true, does not replace source review, and must not be treated as a complete public history.
 
 ## v2.0 canonical review mode
 
