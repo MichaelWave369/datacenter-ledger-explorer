@@ -21,13 +21,13 @@ import "./v35-geo-staging-bridge.css";
 createRoot(document.getElementById("root")!).render(<App />);
 
 async function loadCompanionWidgets() {
-  await import("./v28-release-signoff-widget");
-  await import("./v28-version-sync");
-  await import("./v29-release-archive-index");
+  await import("./companion-loaders/v28-release-signoff-widget-loader");
+  await import("./companion-loaders/v28-version-sync-loader");
+  await import("./companion-loaders/v29-release-archive-index-loader");
   await import("./v30-release-library-mode");
   await import("./v31-release-library-integrity-check");
   await import("./v32-us-map-scaffold");
-  await import("./v33-facility-geo-record-schema");
+  await import("./companion-loaders/v33-facility-geo-record-schema-loader");
   await import("./v34-facility-geo-import-workbench");
   await import("./v35-geo-staging-bridge");
 }
