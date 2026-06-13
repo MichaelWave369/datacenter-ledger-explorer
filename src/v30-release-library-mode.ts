@@ -20,13 +20,13 @@ type LibraryDecision = 'approve_release' | 'hold_release' | 'needs_more_review' 
 
 type ArchiveEntryLike = {
   id?: string;
-  kind?: LibraryKind;
+  kind?: string;
   schema?: string;
   label?: string;
   releaseName?: string;
   appVersion?: string;
   digest?: string;
-  decision?: LibraryDecision;
+  decision?: string;
   ready?: boolean | null;
   canonicalCount?: number;
   pendingApprovals?: number;
@@ -68,6 +68,12 @@ type LibraryEntry = {
   payloadDigest: string;
   payload: unknown;
 };
+
+function requireLibraryElement<T extends Element>(root: ParentNode, selector: string): T {
+  const element = root.querySelector<T>(selector);
+  if (!element) throw new Error(`Missing Release Library element: ${selector}`);
+  return element;
+}
 
 function libraryDigest(payload: unknown) {
   const text = JSON.stringify(payload) || '';
@@ -128,12 +134,14 @@ function setLibraryTextarea(selector: string, value: string) {
   return true;
 }
 
-function entryKind(entry: ArchiveEntryLike): LibraryKind {
-  return entry.kind || 'unknown';
+function normalizeKind(value: string | undefined): LibraryKind {
+  if (value === 'manifest' || value === 'manifest_diff' || value === 'signoff_packet') return value;
+  return 'unknown';
 }
 
-function entryDecision(entry: ArchiveEntryLike): LibraryDecision {
-  return entry.decision || 'none';
+function normalizeDecision(value: string | undefined): LibraryDecision {
+  if (value === 'approve_release' || value === 'hold_release' || value === 'needs_more_review') return value;
+  return 'none';
 }
 
 function entryDigest(entry: ArchiveEntryLike) {
@@ -152,14 +160,14 @@ function buildLibraryEntries(): LibraryEntry[] {
       const fallback = new Date().toISOString();
 
       return {
-        id: entry.id || `${entryKind(entry)}-${digest}`,
-        kind: entryKind(entry),
+        id: entry.id || `${normalizeKind(entry.kind)}-${digest}`,
+        kind: normalizeKind(entry.kind),
         schema: entry.schema || 'unknown',
         label: entry.label || entry.releaseName || 'Unnamed release artifact',
         releaseName: entry.releaseName || 'Unnamed release',
         appVersion: entry.appVersion || 'unknown',
         digest,
-        decision: entryDecision(entry),
+        decision: normalizeDecision(entry.decision),
         ready: typeof entry.ready === 'boolean' ? entry.ready : null,
         canonicalCount: Number(entry.canonicalCount || 0),
         pendingApprovals: Number(entry.pendingApprovals || 0),
@@ -268,27 +276,27 @@ function initReleaseLibraryMode() {
   const host = document.querySelector('main.shell') || document.querySelector('#root') || document.body;
   host.appendChild(mount);
 
-  const searchInput = mount.querySelector<HTMLInputElement>('#dcl-v30-search');
-  const decisionFilter = mount.querySelector<HTMLSelectElement>('#dcl-v30-decision');
-  const currentSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-current');
-  const supersedesSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-supersedes');
-  const labelInput = mount.querySelector<HTMLInputElement>('#dcl-v30-label');
-  const notesInput = mount.querySelector<HTMLTextAreaElement>('#dcl-v30-notes');
-  const summaryNode = mount.querySelector<HTMLDivElement>('#dcl-v30-summary');
-  const lineageNode = mount.querySelector<HTMLDivElement>('#dcl-v30-lineage');
-  const tableNode = mount.querySelector<HTMLDivElement>('#dcl-v30-table');
+  let searchInput: HTMLInputElement;
+  let decisionFilter: HTMLSelectElement;
+  let currentSelect: HTMLSelectElement;
+  let supersedesSelect: HTMLSelectElement;
+  let labelInput: HTMLInputElement;
+  let notesInput: HTMLTextAreaElement;
+  let summaryNode: HTMLDivElement;
+  let lineageNode: HTMLDivElement;
+  let tableNode: HTMLDivElement;
 
-  if (
-    !searchInput ||
-    !decisionFilter ||
-    !currentSelect ||
-    !supersedesSelect ||
-    !labelInput ||
-    !notesInput ||
-    !summaryNode ||
-    !lineageNode ||
-    !tableNode
-  ) {
+  try {
+    searchInput = requireLibraryElement<HTMLInputElement>(mount, '#dcl-v30-search');
+    decisionFilter = requireLibraryElement<HTMLSelectElement>(mount, '#dcl-v30-decision');
+    currentSelect = requireLibraryElement<HTMLSelectElement>(mount, '#dcl-v30-current');
+    supersedesSelect = requireLibraryElement<HTMLSelectElement>(mount, '#dcl-v30-supersedes');
+    labelInput = requireLibraryElement<HTMLInputElement>(mount, '#dcl-v30-label');
+    notesInput = requireLibraryElement<HTMLTextAreaElement>(mount, '#dcl-v30-notes');
+    summaryNode = requireLibraryElement<HTMLDivElement>(mount, '#dcl-v30-summary');
+    lineageNode = requireLibraryElement<HTMLDivElement>(mount, '#dcl-v30-lineage');
+    tableNode = requireLibraryElement<HTMLDivElement>(mount, '#dcl-v30-table');
+  } catch {
     return;
   }
 
@@ -385,7 +393,7 @@ function initReleaseLibraryMode() {
       : `<div class='emptyArchive'>No releases match the current filters.</div>`;
   }
 
-  mount.querySelector<HTMLButtonElement>('#dcl-v30-save-lineage')?.addEventListener('click', () => {
+  requireLibraryElement<HTMLButtonElement>(mount, '#dcl-v30-save-lineage').addEventListener('click', () => {
     const current = getCurrentEntry();
     if (!current) return;
     updateLineage(current.digest, supersedesSelect.value, labelInput.value.trim() || current.releaseName, notesInput.value.trim());
@@ -393,11 +401,11 @@ function initReleaseLibraryMode() {
     syncEditorFromCurrent();
   });
 
-  mount.querySelector<HTMLButtonElement>('#dcl-v30-export-library')?.addEventListener('click', () => {
+  requireLibraryElement<HTMLButtonElement>(mount, '#dcl-v30-export-library').addEventListener('click', () => {
     downloadLibraryJson('datacenter-ledger-release-library-v3.0.json', buildReleaseLibraryPacket());
   });
 
-  mount.querySelector<HTMLButtonElement>('#dcl-v30-export-history')?.addEventListener('click', () => {
+  requireLibraryElement<HTMLButtonElement>(mount, '#dcl-v30-export-history').addEventListener('click', () => {
     const packet = buildReleaseLibraryPacket();
     downloadLibraryJson('datacenter-ledger-public-release-history-v3.0.json', {
       schema: 'DataCenterLedger.PublicReleaseHistory.v3.0',
@@ -410,13 +418,13 @@ function initReleaseLibraryMode() {
     });
   });
 
-  mount.querySelector<HTMLButtonElement>('#dcl-v30-send-signoff')?.addEventListener('click', () => {
+  requireLibraryElement<HTMLButtonElement>(mount, '#dcl-v30-send-signoff').addEventListener('click', () => {
     const current = getCurrentEntry();
     if (!current) return;
     setLibraryTextarea('#dcl-v28-manifest', JSON.stringify(current.payload, null, 2) || '{}');
   });
 
-  mount.querySelector<HTMLButtonElement>('#dcl-v30-export-compare')?.addEventListener('click', () => {
+  requireLibraryElement<HTMLButtonElement>(mount, '#dcl-v30-export-compare').addEventListener('click', () => {
     const current = getCurrentEntry();
     const previous = getSupersedesEntry();
     if (!current || !previous) return;
