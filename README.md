@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, release library integrity checks, a map-safe U.S. record scaffold, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, release library integrity checks, a map-safe U.S. record scaffold, facility geo record schemas, and canonical export packets.
 
 ## Live app
 
@@ -42,7 +42,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v3.0 release library mode
 - v3.1 release library integrity check
 - v3.2 map-safe U.S. record scaffold
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, release library exports, release integrity reports, and map layer exports
+- v3.3 facility geo record schema
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, release library exports, release integrity reports, map layer exports, and geo schema exports
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -56,7 +57,22 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public-data safety docs
 - GitHub Pages deploy workflow
 
-The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, release library lineage, release library integrity checks, and map-safe U.S. record layers. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, release library lineage, release library integrity checks, map-safe U.S. record layers, and facility geo schemas. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v3.3 facility geo record schema
+
+v3.3 adds the data contract needed before real facility rows enter the map lane:
+
+- defines required fields such as `recordId`, `title`, `state`, `geoPrecision`, `locationEvidenceClass`, `locationEvidenceUrl`, and `locationConfidence`
+- defines optional fields for operator, county, city, public address basis, coordinates basis, review status, and geo notes
+- defines map-safe precision levels: `state`, `county`, `city`, `public_address`, and `approximate`
+- defines public evidence classes including air permits, planning records, utility records, company disclosures, public registries, news reports, open-map signals, and other public records
+- exports `DataCenterLedger.FacilityGeoRecordSchema.v3.3`
+- exports a CSV template packet for future geo imports
+- includes a single-record validator for pasted JSON
+- keeps exact address and coordinate fields bounded by public-source basis fields
+
+A facility geo record schema is a review contract. It does not validate source truth, authorize exact-location disclosure, discover facilities, or make a complete national map.
 
 ## v3.2 map-safe U.S. record scaffold
 
