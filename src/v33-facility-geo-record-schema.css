@@ -1,0 +1,117 @@
+.v33-geo-panel {
+  margin: 2rem auto;
+  max-width: 1180px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 24px;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.28);
+}
+
+.v33-geo-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.v33-geo-header h2 {
+  margin: 0.25rem 0;
+}
+
+.v33-geo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
+
+.v33-geo-actions.inline {
+  justify-content: flex-start;
+  margin: 0.85rem 0;
+}
+
+.v33-geo-actions button {
+  border: 1px solid rgba(125, 211, 252, 0.42);
+  border-radius: 999px;
+  padding: 0.65rem 0.95rem;
+  background: rgba(14, 165, 233, 0.14);
+  color: inherit;
+  cursor: pointer;
+}
+
+.v33-geo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.v33-geo-card {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.66);
+}
+
+.v33-geo-card.warning {
+  border-color: rgba(251, 191, 36, 0.42);
+  background: rgba(120, 53, 15, 0.22);
+}
+
+.v33-geo-card ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.v33-geo-card li {
+  margin: 0.55rem 0;
+}
+
+.v33-validator {
+  margin-top: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 20px;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.v33-validator label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.v33-validator textarea {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  padding: 0.85rem;
+  background: rgba(15, 23, 42, 0.82);
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.v33-validation-output {
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  padding: 0.85rem;
+  background: rgba(15, 23, 42, 0.72);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .v33-geo-header {
+    flex-direction: column;
+  }
+
+  .v33-geo-actions {
+    justify-content: flex-start;
+  }
+
+  .v33-geo-grid {
+    grid-template-columns: 1fr;
+  }
+}
