@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, release library integrity checks, a map-safe U.S. record scaffold, facility geo record schemas, facility geo import batches, geo staging bridge packets, draft geo intake review decisions, approved geo map-feed packets, map candidate QA reports, final map layer export gates, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, release library integrity checks, a map-safe U.S. record scaffold, facility geo record schemas, facility geo import batches, geo staging bridge packets, draft geo intake review decisions, approved geo map-feed packets, map candidate QA reports, final map layer export gates, final map layer viewer snapshots, and canonical export packets.
 
 ## Live app
 
@@ -49,7 +49,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v3.7 approved geo intake map feed
 - v3.8 map candidate QA dashboard
 - v3.9 final map layer export gate
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, release library exports, release integrity reports, map layer exports, geo schema exports, geo import batches, geo staging bridge packets, geo intake review packets, approved geo map-feed packets, map candidate QA reports, and final map layer packets
+- v4.0 final map layer viewer integration
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, release library exports, release integrity reports, map layer exports, geo schema exports, geo import batches, geo staging bridge packets, geo intake review packets, approved geo map-feed packets, map candidate QA reports, final map layer packets, and final map viewer snapshots
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -63,7 +64,20 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public-data safety docs
 - GitHub Pages deploy workflow
 
-The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, release library lineage, release library integrity checks, map-safe U.S. record layers, facility geo schemas, facility geo import batches, geo staging bridge packets, draft geo intake review packets, approved geo map-feed packets, map candidate QA reports, and final map layer export gates. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, release library lineage, release library integrity checks, map-safe U.S. record layers, facility geo schemas, facility geo import batches, geo staging bridge packets, draft geo intake review packets, approved geo map-feed packets, map candidate QA reports, final map layer export gates, and final map layer viewer snapshots. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v4.0 final map layer viewer integration
+
+v4.0 reads the export-ready `DataCenterLedger.FinalMapLayer.v3.9` packet into a final viewer layer:
+
+- load the latest final map layer from browser storage
+- paste or load final map-layer JSON
+- confirm gate status and QA status badges
+- show state clusters and reviewed final records
+- export `DataCenterLedger.FinalMapLayerViewer.v4.0`
+- store the latest viewer snapshot under `datacenter-ledger.final-map-viewer.v4.0`
+
+A final map viewer snapshot is still a local review display. It does not prove source truth, certify facility status, discover facilities, authorize sensitive publication, upgrade location precision, or make a complete national map.
 
 ## v3.9 final map layer export gate
 
