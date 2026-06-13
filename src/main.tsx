@@ -22,5 +22,7 @@ import "./v32-us-map-scaffold.css";
 import "./v32-us-map-scaffold";
 import "./v33-facility-geo-record-schema.css";
 import "./v33-facility-geo-record-schema";
+import "./v34-facility-geo-import-workbench.css";
+import "./v34-facility-geo-import-workbench";
 
 createRoot(document.getElementById("root")!).render(<App />);
