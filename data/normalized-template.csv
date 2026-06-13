@@ -1,0 +1,2 @@
+id,name,operator,status,state,county,city,lat,lon,capacity_mw,sqft,confidence,source
+dcl-example-001,Example Public Dataset Record,Unknown,unknown,VA,Loudoun County,Ashburn,,,0,0,50,Example Source
