@@ -19,6 +19,7 @@ import "./v34-facility-geo-import-workbench.css";
 import "./v35-geo-staging-bridge.css";
 import "./v36-draft-geo-intake-review.css";
 import "./v37-approved-geo-map-feed.css";
+import "./v38-map-candidate-qa-dashboard.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
 
@@ -35,6 +36,7 @@ async function loadCompanionWidgets() {
   await import("./v36-draft-geo-intake-review");
   await import("./v37-approved-geo-map-feed");
   await import("./v37-approved-geo-map-feed-archive-sync");
+  await import("./v38-map-candidate-qa-dashboard");
 }
 
 window.setTimeout(() => {
