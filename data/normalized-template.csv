@@ -1,2 +1,2 @@
-id,name,operator,status,state,county,city,lat,lon,capacity_mw,sqft,confidence,source,source_type
-dcl-example-001,Example Public Dataset Record,Unknown,unknown,VA,Loudoun County,Ashburn,,,0,0,50,Example Source,public_dataset
+id,name,operator,status,state,county,city,lat,lon,capacity_mw,sqft,confidence,source,source_type,source_url,source_claim,retrieved_at
+dcl-example-001,Example Public Dataset Record,Unknown,unknown,VA,Loudoun County,Ashburn,,,0,0,50,Example Source,public_dataset,https://example.org/source,"Example source claim to preserve as a receipt.",2026-06-13
