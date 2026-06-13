@@ -1,0 +1,98 @@
+.two-person-policy {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.two-person-policy strong {
+  font-size: 0.94rem;
+}
+
+.two-person-policy span {
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 0.9rem;
+}
+
+.approval-request-card,
+.two-person-gate-card,
+.decision-gate-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.two-person-gate-card.allowed,
+.decision-gate-card.allowed {
+  border-color: rgba(34, 197, 94, 0.42);
+}
+
+.two-person-gate-card.blocked,
+.decision-gate-card.blocked {
+  border-color: rgba(248, 113, 113, 0.46);
+}
+
+.approval-meta-grid,
+.two-person-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.approval-meta-grid span,
+.two-person-meta-grid span {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.38);
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 0.86rem;
+}
+
+.approval-meta-grid strong,
+.two-person-meta-grid strong {
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.approval-actions textarea,
+.decision-note-input {
+  min-height: 88px;
+}
+
+.policy-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.policy-chip {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 999px;
+  padding: 0.38rem 0.68rem;
+  background: rgba(15, 23, 42, 0.42);
+  color: rgba(226, 232, 240, 0.86);
+  font-size: 0.78rem;
+}
+
+.policy-chip.allowed {
+  border-color: rgba(34, 197, 94, 0.44);
+}
+
+.policy-chip.blocked {
+  border-color: rgba(248, 113, 113, 0.48);
+}
