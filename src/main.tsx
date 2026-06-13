@@ -37,6 +37,7 @@ async function loadCompanionWidgets() {
   await import("./v37-approved-geo-map-feed");
   await import("./v37-approved-geo-map-feed-archive-sync");
   await import("./v38-map-candidate-qa-dashboard");
+  await import("./v38-visible-version-sync");
 }
 
 window.setTimeout(() => {
