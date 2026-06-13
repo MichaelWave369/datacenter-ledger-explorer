@@ -17,6 +17,7 @@ import "./v32-us-map-scaffold.css";
 import "./v33-facility-geo-record-schema.css";
 import "./v34-facility-geo-import-workbench.css";
 import "./v35-geo-staging-bridge.css";
+import "./v36-draft-geo-intake-review.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
 
@@ -30,6 +31,7 @@ async function loadCompanionWidgets() {
   await import("./companion-loaders/v33-facility-geo-record-schema-loader");
   await import("./v34-facility-geo-import-workbench");
   await import("./v35-geo-staging-bridge");
+  await import("./v36-draft-geo-intake-review");
 }
 
 window.setTimeout(() => {
