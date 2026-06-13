@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, and canonical export packets.
 
 ## Live app
 
@@ -36,7 +36,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v2.4 approval role profiles
 - v2.5 two-person approval rule
 - v2.6 governance release manifest
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, and release manifests
+- v2.7 manifest compare / release diff
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, and release diff exports
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -51,6 +52,19 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - GitHub Pages deploy workflow
 
 The larger sprint package has evolved through v1.0 with import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, and action queues. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v2.7 manifest compare / release diff
+
+v2.7 adds a local compare cockpit for two exported governance release manifests:
+
+- paste or load baseline and candidate `DataCenterLedger.GovernanceReleaseManifest` JSON files
+- compare release names, app versions, readiness state, manifest digests, active roles, canonical records, blockers, warnings, approvals, public briefs, promotion receipts, change receipts, and average source quality
+- export `DataCenterLedger.ManifestCompare.v2.7`
+- add `compare_release_manifests` as a role-gated permission for `publisher` and `admin`
+- keep the compare local-only with no backend, no hidden network calls, and no external validation
+- preserve review-only language inside the diff packet
+
+A manifest diff is a review artifact. It does not certify that either manifest is true, complete, legally authorized, secure, or safe to publish.
 
 ## v2.6 governance release manifest
 
@@ -118,56 +132,10 @@ v2.2 protects the workspace from silent drift when a selected record changes:
 
 - edit a selected record in a protected change-review cockpit
 - preview before/after field deltas before applying changes
-- mark each changed field as low, medium, or high impact
-- show source-quality score before and after the proposed change
-- show canonical blockers before and after the proposed change
-- require a reviewer and change reason before applying a change
-- create a local `ChangeReceipt` with timestamp, reason, deltas, quality snapshots, canonical blocker snapshots, and digest
-- include change receipts in Ledger, canonical, session, and audit timeline exports
-- export `DataCenterLedger.CanonicalChangeReview.v2.2`
-- export `DataCenterLedger.ChangeHistory.v2.2`
+- require a reviewer reason before applying a change
+- create local change receipts with deterministic digests
+- preserve source-quality and canonical-blocker snapshots before and after the change
 
-Change review is a local governance layer. It does not prove a record is true and does not make non-public data safe to publish.
+## Safety posture
 
-## v2.1 promotion audit timeline
-
-v2.1 adds a selected-record audit timeline that gathers review history into one exportable trail:
-
-- import batch events
-- source receipt events
-- receipt edit events
-- generated and manual task events
-- source quality evaluation events
-- public brief generation events
-- reviewed lifecycle marker
-- promotion receipt events
-- local session restore markers
-- reviewer note events
-- export `DataCenterLedger.PromotionAuditTimeline.v2.1`
-
-The timeline is a local review chronology. It does not prove a record is true, does not replace source review, and must not be treated as a complete public history.
-
-## v2.0 canonical review mode
-
-v2.0 makes promotion explicit, reviewable, and receipt-backed:
-
-- selected-record promotion cockpit
-- checklist gates for receipts, source quality, confidence, unresolved warnings, precision, high-impact MW claims, public brief readiness, safety acknowledgment, and reviewer reason
-- `reviewed` lifecycle step before `promoted_public`
-- locked promotion until required gates pass
-- local promotion receipt with reviewer, reason, checklist snapshot, source-quality snapshot, prior lifecycle, timestamp, and digest
-
-Promotion still does not prove a record is true. It only records that the local review gates were satisfied at the time of promotion.
-
-## Run locally
-
-```bash
-npm install
-npm run dev
-```
-
-## Build
-
-```bash
-npm run build
-```
+Use public sources only. Do not use this tool to identify private facility details, collect sensitive coordinates, bypass security controls, or publish unreviewed infrastructure claims.
