@@ -4,10 +4,11 @@ type Status = "operating" | "planned" | "under_construction" | "approved" | "unk
 type Lifecycle = "raw_import" | "local_working" | "promoted_public" | "rejected_duplicate" | "retired";
 type Precision = "public_dataset" | "city_level" | "county_level" | "state_level" | "unknown";
 type Confidence = "high" | "medium" | "low";
+type SourceType = "public_dataset" | "permit" | "utility" | "operator" | "news" | "review" | "other";
 
 type Receipt = {
   sourceName: string;
-  sourceType: "public_dataset" | "permit" | "utility" | "operator" | "news" | "review" | "other";
+  sourceType: SourceType;
   retrievedAt: string;
   claim: string;
   confidence: Confidence;
@@ -29,6 +30,40 @@ type LedgerRecord = {
   receipts: Receipt[];
   notes: string[];
 };
+
+type SafetyStep = {
+  title: string;
+  body: string;
+};
+
+const APP_VERSION = "1.1.0";
+
+const publicBoundary = [
+  "Public-data only",
+  "No hidden network calls",
+  "No private facility discovery",
+  "No security-sensitive enrichment",
+  "City/county precision unless exact location is already public"
+];
+
+const safeUseSteps: SafetyStep[] = [
+  {
+    title: "Start with public sources",
+    body: "Import only public datasets, permits, utility filings, operator announcements, or news records you can cite."
+  },
+  {
+    title: "Treat every import as a claim",
+    body: "Raw rows enter the Ledger as review candidates. A source receipt explains who said what and when it was retrieved."
+  },
+  {
+    title: "Promote slowly",
+    body: "A public record should have receipts, confidence, clear precision, and no open review warnings before it becomes canonical."
+  },
+  {
+    title: "Avoid sensitive enrichment",
+    body: "Do not add private access details, security layouts, unreviewed coordinates, or anything that turns the workbench into a target map."
+  }
+];
 
 const starterRecords: LedgerRecord[] = [
   {
@@ -78,6 +113,30 @@ const starterRecords: LedgerRecord[] = [
       }
     ],
     notes: []
+  },
+  {
+    id: "dcl-demo-des-moines-ia",
+    name: "Midwest Utility Filing Candidate",
+    operator: "Unknown",
+    status: "approved",
+    state: "IA",
+    county: "Polk County",
+    city: "Des Moines",
+    precision: "county_level",
+    capacityMW: undefined,
+    lifecycle: "raw_import",
+    confidenceScore: 54,
+    reviewWarnings: ["Needs permit source.", "Needs utility source."],
+    receipts: [
+      {
+        sourceName: "Demo seed",
+        sourceType: "review",
+        retrievedAt: "2026-06-13T00:00:00.000Z",
+        claim: "Demonstrates a low-confidence review queue item.",
+        confidence: "low"
+      }
+    ],
+    notes: []
   }
 ];
 
@@ -113,6 +172,10 @@ function parseCsv(text: string): LedgerRecord[] {
     const values = line.split(",");
     const name = cell(values, "name") || "Unnamed public record";
     const sourceName = cell(values, "source") || "CSV import";
+    const sourceType = (cell(values, "source_type") as SourceType) || "public_dataset";
+    const city = cell(values, "city") || undefined;
+    const precision = city ? "city_level" : cell(values, "county") ? "county_level" : "state_level";
+
     return {
       id: cell(values, "id") || digest({ line, index }),
       name,
@@ -120,8 +183,8 @@ function parseCsv(text: string): LedgerRecord[] {
       status: (cell(values, "status") as Status) || "unknown",
       state: cell(values, "state") || cell(values, "state_abb") || "UNKNOWN",
       county: cell(values, "county") || "Unknown county",
-      city: cell(values, "city") || undefined,
-      precision: cell(values, "city") ? "city_level" : "county_level",
+      city,
+      precision,
       capacityMW: Number(cell(values, "capacity_mw")) || undefined,
       lifecycle: "raw_import",
       confidenceScore: Number(cell(values, "confidence")) || 50,
@@ -129,7 +192,7 @@ function parseCsv(text: string): LedgerRecord[] {
       receipts: [
         {
           sourceName,
-          sourceType: "public_dataset",
+          sourceType,
           retrievedAt: nowIso(),
           claim: `Imported row for ${name}.`,
           confidence: "medium"
@@ -150,6 +213,9 @@ export default function App() {
 
   const selected = records.find((record) => record.id === selectedId) || records[0];
   const states = useMemo(() => Array.from(new Set(records.map((record) => record.state))).sort(), [records]);
+  const canonicalRecords = useMemo(() => records.filter((record) => canonicalBlockers(record).length === 0), [records]);
+  const reviewRecords = useMemo(() => records.filter((record) => canonicalBlockers(record).length > 0), [records]);
+  const demoRecords = useMemo(() => records.filter((record) => record.id.startsWith("dcl-demo-")), [records]);
 
   const visibleRecords = useMemo(() => records.filter((record) => {
     const haystack = `${record.name} ${record.operator} ${record.county} ${record.city || ""}`.toLowerCase();
@@ -162,7 +228,12 @@ export default function App() {
 
   function promoteSelected() {
     setRecords((items) => items.map((item) => item.id === selected.id
-      ? { ...item, lifecycle: "promoted_public", reviewWarnings: [] }
+      ? {
+          ...item,
+          lifecycle: "promoted_public",
+          reviewWarnings: [],
+          notes: [...item.notes, `Promoted locally at ${new Date().toLocaleString()}. Confirm source posture before publishing.`]
+        }
       : item));
   }
 
@@ -180,50 +251,123 @@ export default function App() {
     if (imported[0]) setSelectedId(imported[0].id);
   }
 
+  function resetDemoData() {
+    setRecords(starterRecords);
+    setSelectedId(starterRecords[0].id);
+    setQuery("");
+    setStateFilter("all");
+    setMode("all");
+  }
+
   function exportLedger() {
     downloadJson("datacenter-ledger-export.json", {
-      schema: "DataCenterLedger.Export.v1.0-public-repo",
+      schema: "DataCenterLedger.Export.v1.1-public-launch",
       generatedAt: nowIso(),
+      appVersion: APP_VERSION,
+      boundary: publicBoundary,
       records,
       digest: digest(records)
     });
   }
 
   function exportCanonical() {
-    const included = records.filter((record) => canonicalBlockers(record).length === 0);
+    const included = canonicalRecords;
     const excluded = records.filter((record) => canonicalBlockers(record).length > 0).map((record) => ({
       id: record.id,
       name: record.name,
       blockers: canonicalBlockers(record)
     }));
     downloadJson("datacenter-ledger-canonical.json", {
-      schema: "DataCenterLedger.CanonicalRegistry.v1.0-public-repo",
+      schema: "DataCenterLedger.CanonicalRegistry.v1.1-public-launch",
       generatedAt: nowIso(),
+      appVersion: APP_VERSION,
       included,
       excluded,
       digest: digest({ included, excluded })
     });
   }
 
+  function exportLaunchPacket() {
+    downloadJson("datacenter-ledger-public-launch-packet.json", {
+      schema: "DataCenterLedger.PublicLaunchPacket.v1.1",
+      generatedAt: nowIso(),
+      appVersion: APP_VERSION,
+      purpose: "Public-safe civic transparency workbench for reviewing U.S. data center records as source-backed claims.",
+      boundary: publicBoundary,
+      safeUseSteps,
+      stats: {
+        records: records.length,
+        demoRecords: demoRecords.length,
+        canonicalRecords: canonicalRecords.length,
+        needsReview: reviewRecords.length,
+        receipts: records.reduce((sum, record) => sum + record.receipts.length, 0)
+      },
+      digest: digest({ records, publicBoundary, safeUseSteps })
+    });
+  }
+
   return (
     <main className="shell">
-      <header className="hero">
+      <header className="hero launchHero">
         <div>
-          <p className="eyebrow">Public-source review • Local-first • Receipt-backed</p>
+          <p className="eyebrow">v{APP_VERSION} public launch sprint • local-first • receipt-backed</p>
           <h1>DataCenterLedger Explorer</h1>
-          <p>A civic transparency workbench for reviewing data center records, receipts, confidence scores, lifecycle decisions, and canonical registry exports.</p>
+          <p>
+            A civic transparency workbench for reviewing public data center records as claims — with receipts,
+            confidence scores, lifecycle decisions, canonical exports, and a clear safety boundary.
+          </p>
+          <div className="boundaryPills" aria-label="Public safety boundary">
+            {publicBoundary.map((item) => <span key={item}>{item}</span>)}
+          </div>
         </div>
         <div className="heroActions">
           <button onClick={exportLedger}>Export Ledger JSON</button>
           <button onClick={exportCanonical}>Export Canonical JSON</button>
+          <button onClick={exportLaunchPacket}>Export Launch Packet</button>
         </div>
       </header>
 
+      <section className="launchGrid" aria-label="Launch overview">
+        <div className="panel introPanel">
+          <p className="eyebrow">What this is</p>
+          <h2>Public records in, reviewable Ledger out.</h2>
+          <p>
+            Import a CSV, inspect each row as a source-backed claim, preserve the receipts, add local reviewer notes,
+            and export either the full working Ledger or only records that pass the canonical gate.
+          </p>
+        </div>
+        <div className="panel introPanel cautionPanel">
+          <p className="eyebrow">What this is not</p>
+          <h2>Not a targeting map.</h2>
+          <p>
+            This starter app ships with demo rows only. It should not be used to add private access details,
+            sensitive layouts, unreviewed exact coordinates, or any non-public enrichment.
+          </p>
+        </div>
+      </section>
+
       <section className="cards">
         <Stat label="Records" value={records.length} />
-        <Stat label="Canonical" value={records.filter((record) => canonicalBlockers(record).length === 0).length} />
+        <Stat label="Canonical" value={canonicalRecords.length} />
         <Stat label="Receipts" value={records.reduce((sum, record) => sum + record.receipts.length, 0)} />
-        <Stat label="Needs review" value={records.filter((record) => canonicalBlockers(record).length > 0).length} />
+        <Stat label="Needs review" value={reviewRecords.length} />
+        <Stat label="Demo rows" value={demoRecords.length} />
+      </section>
+
+      <section className="panel walkthrough">
+        <div>
+          <p className="eyebrow">How to use this safely</p>
+          <h2>Four-step public review flow</h2>
+        </div>
+        <div className="stepGrid">
+          {safeUseSteps.map((step, index) => (
+            <article key={step.title} className="stepCard">
+              <span>{index + 1}</span>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="toolbar">
@@ -238,11 +382,26 @@ export default function App() {
           <option value="review">Needs review</option>
         </select>
         <label className="fileButton">Import CSV<input type="file" accept=".csv" onChange={(event) => event.target.files?.[0] && importFile(event.target.files[0])} /></label>
+        <button onClick={resetDemoData}>Reset Demo</button>
+      </section>
+
+      <section className="sampleNotice panel">
+        <strong>Sample data loaded:</strong>
+        <span>
+          {demoRecords.length} demo rows are visible so the live site is understandable immediately. Replace them with
+          public-source imports before using the Ledger for real review work.
+        </span>
       </section>
 
       <section className="grid">
         <div className="panel">
-          <h2>Working list</h2>
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Working registry</p>
+              <h2>Review queue</h2>
+            </div>
+            <span className="countBadge">{visibleRecords.length} visible</span>
+          </div>
           <div className="tableWrap">
             <table>
               <thead><tr><th>Name</th><th>State</th><th>Status</th><th>Lifecycle</th><th>Confidence</th><th>Gate</th></tr></thead>
@@ -266,6 +425,7 @@ export default function App() {
         </div>
 
         <aside className="panel drawer">
+          <p className="eyebrow">Selected record</p>
           <h2>{selected.name}</h2>
           <p className="muted">{selected.city ? `${selected.city}, ` : ""}{selected.county}, {selected.state} • {selected.precision}</p>
           <div className="miniGrid">
@@ -278,7 +438,7 @@ export default function App() {
           {canonicalBlockers(selected).length
             ? <ul>{canonicalBlockers(selected).map((item) => <li key={item}>{item}</li>)}</ul>
             : <p className="okText">Record passes the current canonical gate.</p>}
-          <button onClick={promoteSelected}>Promote selected demo record</button>
+          <button onClick={promoteSelected}>Promote selected locally</button>
 
           <h3>Receipts</h3>
           {selected.receipts.map((receipt, index) => (
