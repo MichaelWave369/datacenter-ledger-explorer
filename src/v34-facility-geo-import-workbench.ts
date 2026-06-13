@@ -1,5 +1,7 @@
-const GEO_IMPORT_APP_VERSION = "3.4.0";
-const GEO_IMPORT_SCHEMA = "DataCenterLedger.FacilityGeoImportBatch.v3.4";
+export {};
+
+const GEO_IMPORT_APP_VERSION = "3.4.0" as const;
+const GEO_IMPORT_SCHEMA = "DataCenterLedger.FacilityGeoImportBatch.v3.4" as const;
 const GEO_IMPORT_STORAGE_KEY = "datacenter-ledger.facility-geo-import-batch.v3.4";
 
 const GEO_IMPORT_BOUNDARY = [
@@ -98,7 +100,7 @@ type FacilityGeoImportBatch = {
   batchDigest: string;
 };
 
-function stableDigest(value: unknown) {
+function geoImportDigest(value: unknown) {
   const text = JSON.stringify(value);
   let hash = 0;
   for (let index = 0; index < text.length; index += 1) {
@@ -107,7 +109,7 @@ function stableDigest(value: unknown) {
   return `geo-${Math.abs(hash).toString(16).padStart(8, "0")}`;
 }
 
-function escapeHtml(value: string) {
+function geoImportEscape(value: string) {
   return value
     .split("&").join("&amp;")
     .split("<").join("&lt;")
@@ -115,7 +117,7 @@ function escapeHtml(value: string) {
     .split('"').join("&quot;");
 }
 
-function parseCsv(text: string) {
+function parseGeoImportCsv(text: string) {
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = "";
@@ -152,15 +154,14 @@ function parseCsv(text: string) {
   if (row.some((item) => item.length > 0)) {
     rows.push(row);
   }
-
   return rows;
 }
 
-function isLikelyUrl(value: string) {
+function geoImportIsLikelyUrl(value: string) {
   return value.startsWith("https://") || value.startsWith("http://");
 }
 
-function toNumberOrNull(value: string) {
+function geoImportNumberOrNull(value: string) {
   if (!value.trim()) {
     return null;
   }
@@ -168,7 +169,7 @@ function toNumberOrNull(value: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function validationStatus(blockers: string[], warnings: string[]): GeoImportStatus {
+function geoImportStatus(blockers: string[], warnings: string[]): GeoImportStatus {
   if (blockers.length > 0) {
     return "blocked";
   }
@@ -178,8 +179,8 @@ function validationStatus(blockers: string[], warnings: string[]): GeoImportStat
   return "staged";
 }
 
-function validateGeoRow(raw: Record<string, string>, rowNumber: number): GeoImportValidation {
-  const confidence = toNumberOrNull(raw.locationConfidence ?? "");
+function validateGeoImportRow(raw: Record<string, string>, rowNumber: number): GeoImportValidation {
+  const confidence = geoImportNumberOrNull(raw.locationConfidence ?? "");
   const record: FacilityGeoRow = {
     recordId: raw.recordId ?? "",
     title: raw.title ?? "",
@@ -207,7 +208,6 @@ function validateGeoRow(raw: Record<string, string>, rowNumber: number): GeoImpo
       blockers.push(`Missing required field: ${field}`);
     }
   }
-
   if (record.state && !US_STATES.includes(record.state)) {
     blockers.push("State must be a U.S. postal abbreviation or DC.");
   }
@@ -220,13 +220,12 @@ function validateGeoRow(raw: Record<string, string>, rowNumber: number): GeoImpo
   if (record.reviewStatus && !VALID_REVIEW_STATUSES.includes(record.reviewStatus)) {
     blockers.push(`Invalid reviewStatus: ${record.reviewStatus}`);
   }
-  if (record.locationEvidenceUrl && !isLikelyUrl(record.locationEvidenceUrl)) {
+  if (record.locationEvidenceUrl && !geoImportIsLikelyUrl(record.locationEvidenceUrl)) {
     blockers.push("locationEvidenceUrl must start with http:// or https://.");
   }
   if (confidence === null || confidence < 0 || confidence > 100) {
     blockers.push("locationConfidence must be a number from 0 to 100.");
   }
-
   if (record.geoPrecision === "county" && !record.county) {
     warnings.push("County precision should include county.");
   }
@@ -251,17 +250,17 @@ function validateGeoRow(raw: Record<string, string>, rowNumber: number): GeoImpo
 
   return {
     rowNumber,
-    status: validationStatus(blockers, warnings),
+    status: geoImportStatus(blockers, warnings),
     blockers,
     warnings,
     record,
     raw,
-    digest: stableDigest({ rowNumber, record })
+    digest: geoImportDigest({ rowNumber, record })
   };
 }
 
-function validateCsv(text: string) {
-  const parsed = parseCsv(text);
+function validateGeoImportCsv(text: string) {
+  const parsed = parseGeoImportCsv(text);
   if (parsed.length === 0) {
     return [];
   }
@@ -277,7 +276,7 @@ function validateCsv(text: string) {
       const columnIndex = headerIndex.get(column);
       raw[column] = columnIndex === undefined ? "" : row[columnIndex] ?? "";
     }
-    return validateGeoRow(raw, index + 2);
+    return validateGeoImportRow(raw, index + 2);
   });
 
   const recordIdCounts = new Map<string, number>();
@@ -292,17 +291,17 @@ function validateCsv(text: string) {
     const count = recordIdCounts.get(validation.record.recordId) ?? 0;
     if (count > 1) {
       validation.blockers.push("Duplicate recordId in this import batch.");
-      validation.status = validationStatus(validation.blockers, validation.warnings);
+      validation.status = geoImportStatus(validation.blockers, validation.warnings);
     }
     return validation;
   });
 }
 
-function makeImportBatch(validations: GeoImportValidation[]): FacilityGeoImportBatch {
+function makeGeoImportBatch(validations: GeoImportValidation[]): FacilityGeoImportBatch {
   const stagedRows = validations.filter((row) => row.blockers.length === 0);
   const blockedRows = validations.filter((row) => row.blockers.length > 0);
   const warningRows = validations.filter((row) => row.blockers.length === 0 && row.warnings.length > 0);
-  const batchCore = {
+  const batchCore: Omit<FacilityGeoImportBatch, "batchDigest"> = {
     schema: GEO_IMPORT_SCHEMA,
     generatedAt: new Date().toISOString(),
     appVersion: GEO_IMPORT_APP_VERSION,
@@ -310,20 +309,20 @@ function makeImportBatch(validations: GeoImportValidation[]): FacilityGeoImportB
     stagedCount: stagedRows.length,
     blockedCount: blockedRows.length,
     warningCount: warningRows.length,
-    columns: GEO_IMPORT_COLUMNS,
+    columns: [...GEO_IMPORT_COLUMNS],
     stagedRows,
     blockedRows,
     warningRows,
-    safetyBoundary: GEO_IMPORT_BOUNDARY,
+    safetyBoundary: [...GEO_IMPORT_BOUNDARY],
     reviewOnlyNotice: "This import batch stages public geo claims for review. It does not certify source truth or authorize exact-location publication."
   };
   return {
     ...batchCore,
-    batchDigest: stableDigest(batchCore)
+    batchDigest: geoImportDigest(batchCore)
   };
 }
 
-function downloadJson(filename: string, payload: unknown) {
+function downloadGeoImportJson(filename: string, payload: unknown) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -333,7 +332,7 @@ function downloadJson(filename: string, payload: unknown) {
   URL.revokeObjectURL(url);
 }
 
-function queryRequired<T extends HTMLElement>(root: ParentNode, selector: string) {
+function queryGeoImportRequired<T extends HTMLElement>(root: ParentNode, selector: string) {
   const element = root.querySelector<T>(selector);
   if (!element) {
     throw new Error(`Missing v3.4 control: ${selector}`);
@@ -341,7 +340,7 @@ function queryRequired<T extends HTMLElement>(root: ParentNode, selector: string
   return element;
 }
 
-function renderImportResults(container: HTMLElement, validations: GeoImportValidation[]) {
+function renderGeoImportResults(container: HTMLElement, validations: GeoImportValidation[]) {
   if (validations.length === 0) {
     container.innerHTML = `<div class="geo-import-empty">No CSV rows validated yet.</div>`;
     return;
@@ -350,13 +349,13 @@ function renderImportResults(container: HTMLElement, validations: GeoImportValid
   const rows = validations
     .map((validation) => {
       const details = [...validation.blockers, ...validation.warnings]
-        .map((message) => `<li>${escapeHtml(message)}</li>`)
+        .map((message) => `<li>${geoImportEscape(message)}</li>`)
         .join("");
       return `<tr>
         <td>${validation.rowNumber}</td>
-        <td><strong>${escapeHtml(validation.record.recordId || "—")}</strong><br/><span>${escapeHtml(validation.record.title || "Untitled")}</span></td>
-        <td>${escapeHtml(validation.record.state || "—")}</td>
-        <td>${escapeHtml(validation.record.geoPrecision || "—")}</td>
+        <td><strong>${geoImportEscape(validation.record.recordId || "—")}</strong><br/><span>${geoImportEscape(validation.record.title || "Untitled")}</span></td>
+        <td>${geoImportEscape(validation.record.state || "—")}</td>
+        <td>${geoImportEscape(validation.record.geoPrecision || "—")}</td>
         <td><span class="geo-import-status ${validation.status}">${validation.status}</span></td>
         <td>${details ? `<ul>${details}</ul>` : "Ready for staging"}</td>
       </tr>`;
@@ -396,7 +395,7 @@ function mountGeoImportWorkbench() {
       <span>Rows: 0</span><span>Staged: 0</span><span>Warnings: 0</span><span>Blocked: 0</span>
     </div>
     <div class="geo-import-boundary">
-      ${GEO_IMPORT_BOUNDARY.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+      ${GEO_IMPORT_BOUNDARY.map((item) => `<span>${geoImportEscape(item)}</span>`).join("")}
     </div>
     <div class="geo-import-results" data-role="results"><div class="geo-import-empty">No CSV rows validated yet.</div></div>
   `;
@@ -408,14 +407,14 @@ function mountGeoImportWorkbench() {
     document.body.appendChild(panel);
   }
 
-  const csvInput = queryRequired<HTMLTextAreaElement>(panel, '[data-role="csv"]');
-  const fileInput = queryRequired<HTMLInputElement>(panel, '[data-role="file"]');
-  const summaryNode = queryRequired<HTMLDivElement>(panel, '[data-role="summary"]');
-  const resultsNode = queryRequired<HTMLDivElement>(panel, '[data-role="results"]');
-  const sampleButton = queryRequired<HTMLButtonElement>(panel, '[data-action="sample"]');
-  const validateButton = queryRequired<HTMLButtonElement>(panel, '[data-action="validate"]');
-  const exportButton = queryRequired<HTMLButtonElement>(panel, '[data-action="export"]');
-  const clearButton = queryRequired<HTMLButtonElement>(panel, '[data-action="clear"]');
+  const csvInput = queryGeoImportRequired<HTMLTextAreaElement>(panel, '[data-role="csv"]');
+  const fileInput = queryGeoImportRequired<HTMLInputElement>(panel, '[data-role="file"]');
+  const summaryNode = queryGeoImportRequired<HTMLDivElement>(panel, '[data-role="summary"]');
+  const resultsNode = queryGeoImportRequired<HTMLDivElement>(panel, '[data-role="results"]');
+  const sampleButton = queryGeoImportRequired<HTMLButtonElement>(panel, '[data-action="sample"]');
+  const validateButton = queryGeoImportRequired<HTMLButtonElement>(panel, '[data-action="validate"]');
+  const exportButton = queryGeoImportRequired<HTMLButtonElement>(panel, '[data-action="export"]');
+  const clearButton = queryGeoImportRequired<HTMLButtonElement>(panel, '[data-action="clear"]');
 
   let currentValidations: GeoImportValidation[] = [];
 
@@ -427,8 +426,8 @@ function mountGeoImportWorkbench() {
   }
 
   function validateCurrentCsv() {
-    currentValidations = validateCsv(csvInput.value);
-    renderImportResults(resultsNode, currentValidations);
+    currentValidations = validateGeoImportCsv(csvInput.value);
+    renderGeoImportResults(resultsNode, currentValidations);
     updateSummary();
   }
 
@@ -442,7 +441,7 @@ function mountGeoImportWorkbench() {
   clearButton.addEventListener("click", () => {
     csvInput.value = "";
     currentValidations = [];
-    renderImportResults(resultsNode, currentValidations);
+    renderGeoImportResults(resultsNode, currentValidations);
     updateSummary();
   });
 
@@ -450,9 +449,9 @@ function mountGeoImportWorkbench() {
     if (currentValidations.length === 0) {
       validateCurrentCsv();
     }
-    const batch = makeImportBatch(currentValidations);
+    const batch = makeGeoImportBatch(currentValidations);
     localStorage.setItem(GEO_IMPORT_STORAGE_KEY, JSON.stringify(batch));
-    downloadJson(`facility-geo-import-batch-${batch.batchDigest}.json`, batch);
+    downloadGeoImportJson(`facility-geo-import-batch-${batch.batchDigest}.json`, batch);
   });
 
   fileInput.addEventListener("change", () => {
