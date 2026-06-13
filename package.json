@@ -1,6 +1,6 @@
 {
   "name": "datacenter-ledger-explorer",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": false,
   "type": "module",
   "description": "Receipt-backed public-data explorer for U.S. data center records.",
