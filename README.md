@@ -2,7 +2,7 @@
 
 A local-first React + TypeScript workbench for building a **public-data, receipt-backed registry** of U.S. data center records.
 
-This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, release library integrity checks, a map-safe U.S. record scaffold, facility geo record schemas, facility geo import batches, geo staging bridge packets, and canonical export packets.
+This project is not a targeting map and does not claim to be a complete national database. It is a review tool for organizing public records, source receipts, confidence scores, lifecycle decisions, import review batches, receipt edits, source-quality scores, map-safe regional summaries, regional evidence packets, local review sessions, review tasks, public briefs, canonical review packets, promotion receipts, selected-record audit timelines, pending change approvals, canonical change receipts, approval role profiles, two-person approval gates, governance release manifests, manifest release diffs, release signoff packets, release archive indexes, release library lineage, release library integrity checks, a map-safe U.S. record scaffold, facility geo record schemas, facility geo import batches, geo staging bridge packets, draft geo intake review decisions, and canonical export packets.
 
 ## Live app
 
@@ -45,7 +45,8 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - v3.3 facility geo record schema
 - v3.4 facility geo import workbench
 - v3.5 geo import staging bridge
-- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, release library exports, release integrity reports, map layer exports, geo schema exports, geo import batches, and geo staging bridge packets
+- v3.6 draft geo intake review
+- local reviewer role gates for approvals, promotion, public briefs, regional packets, canonical exports, imports, receipts, session restore, release manifests, release diff exports, release signoff packets, release archive exports, release library exports, release integrity reports, map layer exports, geo schema exports, geo import batches, geo staging bridge packets, and geo intake review packets
 - selected-record before/after change diff
 - pending approval requests before workspace mutation
 - two-person separation gate for approve/reject decisions
@@ -59,7 +60,23 @@ This repo contains the public-safe source scaffold for DataCenterLedger Explorer
 - public-data safety docs
 - GitHub Pages deploy workflow
 
-The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, release library lineage, release library integrity checks, map-safe U.S. record layers, facility geo schemas, facility geo import batches, and geo staging bridge packets. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+The larger sprint package has evolved through import adapters, reconciliation, merge lineage, promotion, rollback, canonical registry exports, source-quality drift audits, reviewer evidence bundles, action queues, release manifests, release diffs, release signoff packets, release archives, release library lineage, release library integrity checks, map-safe U.S. record layers, facility geo schemas, facility geo import batches, geo staging bridge packets, and draft geo intake review packets. This public repo is intentionally structured so those modules can be added without shipping sensitive or unreviewed data.
+
+## v3.6 draft geo intake review
+
+v3.6 adds the human-review gate between the v3.5 staging bridge and future map intake:
+
+- load the latest `DataCenterLedger.GeoStagingBridge.v3.5` from browser storage
+- paste or load a v3.5 bridge JSON file
+- review draft geo records one by one
+- approve records into a local map-intake candidate state
+- hold records that need more evidence or reviewer context
+- reject records that should not enter the map-intake lane
+- add reviewer notes to each decision
+- export `DataCenterLedger.GeoIntakeReview.v3.6`
+- store the last intake packet under `datacenter-ledger.geo-intake-review.v3.6`
+
+A geo intake review packet is still a local review packet. It does not prove source truth, certify facility status, authorize exact-location publication, discover facilities, or make a complete national map.
 
 ## v3.5 geo import staging bridge
 
@@ -137,49 +154,3 @@ v3.1 audits the local release library before exporting public release history:
 - flags non-approved releases that have public lineage metadata
 - exports `DataCenterLedger.ReleaseLibraryIntegrityReport.v3.1`
 - keeps the audit local-only with no backend, no hidden network calls, and no external validation
-
-An integrity report is a review prompt. It does not verify source truth, certify release readiness, publish records, or authorize sensitive infrastructure disclosure.
-
-## v3.0 release library mode
-
-v3.0 turns the v2.9 local archive into a release library:
-
-- reads archived governance manifests, manifest diffs, and signoff packets from local browser storage
-- adds release labels and lineage notes
-- records which release supersedes an earlier release
-- shows a public release history table
-- exports `DataCenterLedger.ReleaseLibrary.v3.0`
-- exports `DataCenterLedger.PublicReleaseHistory.v3.0`
-- exports a compare handoff packet for a selected release and the release it supersedes
-- restores an archived release manifest into the v2.8 signoff widget when present
-- keeps all behavior local-only with no backend, no hidden network calls, and no external validation
-
-A release library is a review convenience. It does not verify source truth, certify release readiness, publish records, or authorize sensitive infrastructure disclosure.
-
-## v2.9 release archive index
-
-v2.9 adds a local release archive widget that stores release artifacts in browser localStorage:
-
-- paste or load `DataCenterLedger.GovernanceReleaseManifest` JSON packets
-- paste or load `DataCenterLedger.ManifestCompare` release diff packets
-- paste or load `DataCenterLedger.ReleaseSignoffPacket` JSON packets
-- filter by artifact kind, decision, release name, schema, or digest
-- export `DataCenterLedger.ReleaseArchiveIndex.v2.9`
-- preserve the original packet payloads alongside searchable metadata
-- send archived manifests or diffs into the v2.8 signoff widget when present
-- keep the archive local-only with no backend, no hidden network calls, and no external validation
-
-A release archive index is a local review convenience. It does not verify source truth, certify release readiness, publish records, or authorize sensitive infrastructure disclosure.
-
-## Safety posture
-
-Use public sources only. Do not use this tool to identify private facility details, collect sensitive coordinates, bypass security controls, or publish unreviewed infrastructure claims.
-
-## Development
-
-```bash
-npm install
-npm run dev
-npm run typecheck
-npm run build
-```
