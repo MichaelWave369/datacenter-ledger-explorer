@@ -18,5 +18,7 @@ import "./v30-release-library-mode.css";
 import "./v30-release-library-mode";
 import "./v31-release-library-integrity-check.css";
 import "./v31-release-library-integrity-check";
+import "./v32-us-map-scaffold.css";
+import "./v32-us-map-scaffold";
 
 createRoot(document.getElementById("root")!).render(<App />);
