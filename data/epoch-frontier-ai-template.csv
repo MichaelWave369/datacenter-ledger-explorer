@@ -1,0 +1,2 @@
+id,name,operator,status,state,county,city,current_power_mw,h100_equivalents,capital_cost_usd,water_use,source
+epoch-example-001,Example Frontier AI Record,Unknown,planned,TX,Example County,Example City,0,0,0,unknown,Example Source
