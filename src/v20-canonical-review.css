@@ -1,0 +1,120 @@
+.canonicalModePanel {
+  border-color: rgba(144,255,199,0.28);
+  background: linear-gradient(135deg, rgba(144,255,199,0.08), rgba(75,145,255,0.06));
+}
+
+.canonicalGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.canonicalChecklist {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.checkCard {
+  border: 1px solid rgba(159,205,255,0.15);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.16);
+  padding: 0.85rem;
+}
+
+.checkCard strong,
+.taskCard strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.checkCard span {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.25rem 0.58rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.checkCard.pass span { background: rgba(57,255,145,0.14); color: #90ffc7; }
+.checkCard.warning span { background: rgba(255,205,87,0.14); color: #ffd76e; }
+.checkCard.fail span { background: rgba(255,105,105,0.16); color: #ffb4b4; }
+.checkCard.needs_human span { background: rgba(114,185,255,0.14); color: #9fcfff; }
+.checkCard p { color: #bdd4ed; margin-bottom: 0; }
+
+.promotionForm,
+.manualTask,
+.sessionGrid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.checkLine {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: #bdd4ed;
+}
+
+.checkLine input {
+  width: auto;
+}
+
+.taskGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.taskCard {
+  border: 1px solid rgba(159,205,255,0.15);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.045);
+  padding: 1rem;
+}
+
+.taskCard span {
+  display: block;
+  color: #9fb3c8;
+  font-size: 0.82rem;
+}
+
+.taskCard p {
+  color: #bdd4ed;
+}
+
+.priority-high { border-color: rgba(255,105,105,0.32); }
+.priority-medium { border-color: rgba(255,205,87,0.25); }
+.priority-low { border-color: rgba(144,255,199,0.2); }
+
+.sourceScoreboard,
+.regionalPanel,
+.reviewQueuePanel,
+.sessionPanel,
+.publicBriefPanel {
+  margin: 1rem 0;
+}
+
+.sessionGrid {
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  margin: 1rem 0;
+}
+
+@media (max-width: 1180px) {
+  .canonicalGrid,
+  .canonicalChecklist,
+  .taskGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 780px) {
+  .sessionGrid {
+    grid-template-columns: 1fr;
+  }
+}
