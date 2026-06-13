@@ -20,5 +20,7 @@ import "./v31-release-library-integrity-check.css";
 import "./v31-release-library-integrity-check";
 import "./v32-us-map-scaffold.css";
 import "./v32-us-map-scaffold";
+import "./v33-facility-geo-record-schema.css";
+import "./v33-facility-geo-record-schema";
 
 createRoot(document.getElementById("root")!).render(<App />);
