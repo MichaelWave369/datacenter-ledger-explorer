@@ -69,18 +69,6 @@ type LibraryEntry = {
   payload: unknown;
 };
 
-type LibraryControls = {
-  searchInput: HTMLInputElement;
-  decisionFilter: HTMLSelectElement;
-  currentSelect: HTMLSelectElement;
-  supersedesSelect: HTMLSelectElement;
-  labelInput: HTMLInputElement;
-  notesInput: HTMLTextAreaElement;
-  summaryNode: HTMLDivElement;
-  lineageNode: HTMLDivElement;
-  tableNode: HTMLDivElement;
-};
-
 function libraryDigest(payload: unknown) {
   const text = JSON.stringify(payload) || '';
   let hash = 2166136261;
@@ -239,44 +227,6 @@ function updateLineage(digest: string, supersedesDigest: string, releaseLabel: s
   writeLineageMetadata([nextMeta].concat(lineage));
 }
 
-function getLibraryControls(mount: HTMLElement): LibraryControls | null {
-  const searchInput = mount.querySelector<HTMLInputElement>('#dcl-v30-search');
-  const decisionFilter = mount.querySelector<HTMLSelectElement>('#dcl-v30-decision');
-  const currentSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-current');
-  const supersedesSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-supersedes');
-  const labelInput = mount.querySelector<HTMLInputElement>('#dcl-v30-label');
-  const notesInput = mount.querySelector<HTMLTextAreaElement>('#dcl-v30-notes');
-  const summaryNode = mount.querySelector<HTMLDivElement>('#dcl-v30-summary');
-  const lineageNode = mount.querySelector<HTMLDivElement>('#dcl-v30-lineage');
-  const tableNode = mount.querySelector<HTMLDivElement>('#dcl-v30-table');
-
-  if (
-    !searchInput ||
-    !decisionFilter ||
-    !currentSelect ||
-    !supersedesSelect ||
-    !labelInput ||
-    !notesInput ||
-    !summaryNode ||
-    !lineageNode ||
-    !tableNode
-  ) {
-    return null;
-  }
-
-  return {
-    searchInput,
-    decisionFilter,
-    currentSelect,
-    supersedesSelect,
-    labelInput,
-    notesInput,
-    summaryNode,
-    lineageNode,
-    tableNode
-  };
-}
-
 function initReleaseLibraryMode() {
   if (document.getElementById('dcl-v30-release-library')) return;
 
@@ -318,36 +268,57 @@ function initReleaseLibraryMode() {
   const host = document.querySelector('main.shell') || document.querySelector('#root') || document.body;
   host.appendChild(mount);
 
-  const controls = getLibraryControls(mount);
-  if (!controls) return;
+  const searchInput = mount.querySelector<HTMLInputElement>('#dcl-v30-search');
+  const decisionFilter = mount.querySelector<HTMLSelectElement>('#dcl-v30-decision');
+  const currentSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-current');
+  const supersedesSelect = mount.querySelector<HTMLSelectElement>('#dcl-v30-supersedes');
+  const labelInput = mount.querySelector<HTMLInputElement>('#dcl-v30-label');
+  const notesInput = mount.querySelector<HTMLTextAreaElement>('#dcl-v30-notes');
+  const summaryNode = mount.querySelector<HTMLDivElement>('#dcl-v30-summary');
+  const lineageNode = mount.querySelector<HTMLDivElement>('#dcl-v30-lineage');
+  const tableNode = mount.querySelector<HTMLDivElement>('#dcl-v30-table');
+
+  if (
+    !searchInput ||
+    !decisionFilter ||
+    !currentSelect ||
+    !supersedesSelect ||
+    !labelInput ||
+    !notesInput ||
+    !summaryNode ||
+    !lineageNode ||
+    !tableNode
+  ) {
+    return;
+  }
 
   function getCurrentEntry() {
-    const digest = controls.currentSelect.value;
+    const digest = currentSelect.value;
     return buildLibraryEntries().filter((entry) => entry.digest === digest)[0] || null;
   }
 
   function getSupersedesEntry() {
-    const digest = controls.supersedesSelect.value;
+    const digest = supersedesSelect.value;
     return buildLibraryEntries().filter((entry) => entry.digest === digest)[0] || null;
   }
 
   function refreshSelects(entries: LibraryEntry[]) {
-    const previousCurrent = controls.currentSelect.value;
-    const previousSupersedes = controls.supersedesSelect.value;
+    const previousCurrent = currentSelect.value;
+    const previousSupersedes = supersedesSelect.value;
     const options = entries
       .map((entry) => `<option value='${libraryEscape(entry.digest)}'>${libraryEscape(entry.releaseLabel)} · ${libraryEscape(entry.digest)}</option>`)
       .join('');
 
-    controls.currentSelect.innerHTML = options || `<option value=''>No archived releases yet</option>`;
-    controls.supersedesSelect.innerHTML = `<option value=''>None / first release</option>${options}`;
+    currentSelect.innerHTML = options || `<option value=''>No archived releases yet</option>`;
+    supersedesSelect.innerHTML = `<option value=''>None / first release</option>${options}`;
 
-    if (entries.some((entry) => entry.digest === previousCurrent)) controls.currentSelect.value = previousCurrent;
-    if (entries.some((entry) => entry.digest === previousSupersedes)) controls.supersedesSelect.value = previousSupersedes;
+    if (entries.some((entry) => entry.digest === previousCurrent)) currentSelect.value = previousCurrent;
+    if (entries.some((entry) => entry.digest === previousSupersedes)) supersedesSelect.value = previousSupersedes;
   }
 
   function filteredEntries() {
-    const query = controls.searchInput.value.trim().toLowerCase();
-    const decision = controls.decisionFilter.value;
+    const query = searchInput.value.trim().toLowerCase();
+    const decision = decisionFilter.value;
 
     return buildLibraryEntries().filter((entry) => {
       const matchesDecision = decision === 'all' || entry.decision === decision;
@@ -359,9 +330,9 @@ function initReleaseLibraryMode() {
   function syncEditorFromCurrent() {
     const current = getCurrentEntry();
     if (!current) return;
-    controls.labelInput.value = current.releaseLabel;
-    controls.notesInput.value = current.lineageNotes;
-    controls.supersedesSelect.value = current.supersedesDigest;
+    labelInput.value = current.releaseLabel;
+    notesInput.value = current.lineageNotes;
+    supersedesSelect.value = current.supersedesDigest;
   }
 
   function render() {
@@ -370,7 +341,7 @@ function initReleaseLibraryMode() {
     const summary = librarySummary(entries);
     refreshSelects(entries);
 
-    controls.summaryNode.innerHTML = `
+    summaryNode.innerHTML = `
       <div><strong>${summary.total}</strong><span>library entries</span></div>
       <div><strong>${summary.signoffs}</strong><span>signoffs</span></div>
       <div><strong>${summary.approvedSignoffs}</strong><span>approved</span></div>
@@ -378,7 +349,7 @@ function initReleaseLibraryMode() {
     `;
 
     const lineages = entries.filter((entry) => entry.supersedesDigest);
-    controls.lineageNode.innerHTML = lineages.length
+    lineageNode.innerHTML = lineages.length
       ? lineages
           .map((entry) => {
             const previous = entries.filter((candidate) => candidate.digest === entry.supersedesDigest)[0];
@@ -387,7 +358,7 @@ function initReleaseLibraryMode() {
           .join('')
       : `<div class='emptyArchive'>No release lineage links saved yet.</div>`;
 
-    controls.tableNode.innerHTML = visible.length
+    tableNode.innerHTML = visible.length
       ? visible
           .map((entry) => `
             <article class='library-entry ${libraryEscape(entry.kind)}'>
@@ -417,12 +388,7 @@ function initReleaseLibraryMode() {
   mount.querySelector<HTMLButtonElement>('#dcl-v30-save-lineage')?.addEventListener('click', () => {
     const current = getCurrentEntry();
     if (!current) return;
-    updateLineage(
-      current.digest,
-      controls.supersedesSelect.value,
-      controls.labelInput.value.trim() || current.releaseName,
-      controls.notesInput.value.trim()
-    );
+    updateLineage(current.digest, supersedesSelect.value, labelInput.value.trim() || current.releaseName, notesInput.value.trim());
     render();
     syncEditorFromCurrent();
   });
@@ -468,10 +434,10 @@ function initReleaseLibraryMode() {
     });
   });
 
-  controls.tableNode.addEventListener('click', (event) => {
+  tableNode.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
-    const button = target.closest<HTMLButtonElement>('button[data-action]');
+    const button = target.closest('button[data-action]') as HTMLButtonElement | null;
     if (!button) return;
 
     const digest = button.dataset.digest || '';
@@ -480,7 +446,7 @@ function initReleaseLibraryMode() {
     if (!entry) return;
 
     if (action === 'select') {
-      controls.currentSelect.value = entry.digest;
+      currentSelect.value = entry.digest;
       syncEditorFromCurrent();
       return;
     }
@@ -495,8 +461,9 @@ function initReleaseLibraryMode() {
     }
   });
 
-  [controls.searchInput, controls.decisionFilter].forEach((control) => control.addEventListener('input', render));
-  controls.currentSelect.addEventListener('change', syncEditorFromCurrent);
+  searchInput.addEventListener('input', render);
+  decisionFilter.addEventListener('input', render);
+  currentSelect.addEventListener('change', syncEditorFromCurrent);
   window.addEventListener('storage', render);
 
   render();
