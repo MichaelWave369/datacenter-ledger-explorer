@@ -1,6 +1,6 @@
 {
   "name": "datacenter-ledger-explorer",
-  "version": "4.9.0",
+  "version": "5.0.0",
   "private": false,
   "type": "module",
   "scripts": {
