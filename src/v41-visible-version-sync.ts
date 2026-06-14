@@ -1,5 +1,9 @@
 export {};
 
+import "./v42-public-share-redaction-audit.css";
+import "./v42-public-share-redaction-audit";
+import "./v42-visible-version-sync";
+
 const V41_RELEASE_VERSION = "4.1.0";
 const V41_LEGACY_VERSIONS = ["4.0.0", "V4.0.0"];
 
