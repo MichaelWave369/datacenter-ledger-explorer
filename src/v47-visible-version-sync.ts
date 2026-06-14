@@ -1,5 +1,9 @@
 export {};
 
+import "./v48-public-release-restore-handoff.css";
+import "./v48-public-release-restore-handoff";
+import "./v48-visible-version-sync";
+
 const V47_RELEASE_VERSION = "4.7.0";
 const V47_LEGACY_VERSIONS = ["4.6.0", "V4.6.0"];
 
