@@ -17,6 +17,9 @@
     "jsx": "react-jsx"
   },
   "include": ["src"],
-  "exclude": ["src/v39-final-map-layer-export-gate.ts"],
+  "exclude": [
+    "src/v39-final-map-layer-export-gate.ts",
+    "src/v52-public-console-guided-flow.ts"
+  ],
   "references": []
 }
