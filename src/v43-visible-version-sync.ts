@@ -1,5 +1,9 @@
 export {};
 
+import "./v44-public-share-bundle-exporter.css";
+import "./v44-public-share-bundle-exporter";
+import "./v44-visible-version-sync";
+
 const V43_RELEASE_VERSION = "4.3.0";
 const V43_LEGACY_VERSIONS = ["4.2.0", "V4.2.0"];
 
