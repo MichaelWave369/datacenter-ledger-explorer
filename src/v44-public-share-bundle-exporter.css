@@ -1,0 +1,213 @@
+.public-share-bundle-panel {
+  margin: 24px auto;
+  max-width: 1180px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 24px;
+  padding: 22px;
+  background: linear-gradient(135deg, rgba(8, 47, 73, 0.92), rgba(15, 23, 42, 0.96));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  color: #e0f2fe;
+}
+
+.bundle-heading,
+.bundle-controls,
+.bundle-input-grid,
+.bundle-summary,
+.bundle-boundary,
+.bundle-omitted,
+.bundle-source-chain {
+  display: grid;
+  gap: 12px;
+}
+
+.bundle-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.bundle-heading h2 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.bundle-heading p {
+  margin: 8px 0 0;
+  color: #bae6fd;
+}
+
+.bundle-badge {
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.12);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.bundle-controls {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin-bottom: 16px;
+}
+
+.bundle-controls button,
+.bundle-controls .file-control {
+  border: 1px solid rgba(125, 211, 252, 0.26);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #e0f2fe;
+  background: rgba(15, 23, 42, 0.72);
+  cursor: pointer;
+}
+
+.bundle-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bundle-controls input[type="file"] {
+  width: 100%;
+  margin-top: 6px;
+  font-size: 0.76rem;
+}
+
+.bundle-input-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-bottom: 16px;
+}
+
+.bundle-input-grid label {
+  color: #bae6fd;
+  font-weight: 700;
+}
+
+.bundle-input-grid textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 170px;
+  color: #e0f2fe;
+  background: rgba(2, 6, 23, 0.62);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.bundle-summary {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 14px 0;
+}
+
+.bundle-summary > div {
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.36);
+}
+
+.bundle-summary strong,
+.bundle-summary span {
+  display: block;
+}
+
+.bundle-summary strong {
+  color: #7dd3fc;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bundle-summary span {
+  margin-top: 6px;
+  color: #f8fafc;
+  font-weight: 800;
+}
+
+.bundle-boundary,
+.bundle-omitted,
+.bundle-source-chain {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 14px 0;
+}
+
+.bundle-boundary span,
+.bundle-omitted span,
+.bundle-source-chain span {
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 999px;
+  padding: 8px 10px;
+  color: #bae6fd;
+  background: rgba(2, 6, 23, 0.36);
+  font-size: 0.78rem;
+}
+
+.bundle-omitted strong {
+  color: #f8fafc;
+  align-self: center;
+}
+
+.bundle-messages {
+  border-left: 4px solid rgba(125, 211, 252, 0.7);
+  border-radius: 12px;
+  margin: 14px 0;
+  padding: 10px 12px;
+  color: #e0f2fe;
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.bundle-messages p {
+  margin: 6px 0;
+}
+
+.bundle-ready-card {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  border-radius: 16px;
+  padding: 12px;
+  color: #bbf7d0;
+  background: rgba(22, 101, 52, 0.18);
+  margin-bottom: 12px;
+}
+
+.bundle-ready-card span {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.bundle-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.bundle-preview th,
+.bundle-preview td {
+  border-bottom: 1px solid rgba(125, 211, 252, 0.12);
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.bundle-preview th {
+  color: #7dd3fc;
+  background: rgba(2, 6, 23, 0.42);
+}
+
+.bundle-preview td {
+  color: #e0f2fe;
+}
+
+.bundle-muted {
+  color: #bae6fd;
+}
+
+@media (max-width: 760px) {
+  .bundle-heading {
+    grid-template-columns: 1fr;
+  }
+}
