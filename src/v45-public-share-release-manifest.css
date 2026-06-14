@@ -1,0 +1,239 @@
+.v45-public-share-release-manifest {
+  margin: 2rem auto;
+  max-width: 1180px;
+  padding: 0 1rem;
+}
+
+.v45-shell {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.35);
+  padding: 1.5rem;
+}
+
+.v45-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.v45-header h2 {
+  margin: 0.15rem 0 0.4rem;
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+}
+
+.v45-header p {
+  color: #cbd5e1;
+  margin: 0;
+  max-width: 760px;
+}
+
+.v45-kicker,
+.v45-schema {
+  color: #93c5fd;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.v45-schema {
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  white-space: nowrap;
+}
+
+.v45-controls,
+.v45-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.v45-controls button,
+.v45-file,
+.v45-form-grid input,
+.v45-form-grid textarea {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #e2e8f0;
+}
+
+.v45-controls button,
+.v45-file {
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  font-weight: 750;
+  text-align: center;
+}
+
+.v45-controls button:hover,
+.v45-file:hover {
+  border-color: rgba(147, 197, 253, 0.75);
+}
+
+.v45-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.v45-file input {
+  display: none;
+}
+
+.v45-form-grid label {
+  display: grid;
+  gap: 0.4rem;
+  color: #cbd5e1;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.v45-form-grid input,
+.v45-form-grid textarea {
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+}
+
+.v45-notes {
+  grid-column: 1 / -1;
+}
+
+.v45-form-grid textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.v45-public-share-release-manifest textarea[data-v45-input] {
+  width: 100%;
+  min-height: 140px;
+  resize: vertical;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.58);
+  color: #e2e8f0;
+  padding: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  margin-bottom: 1rem;
+}
+
+.v45-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.v45-summary div {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(30, 41, 59, 0.58);
+  padding: 0.85rem;
+}
+
+.v45-summary strong,
+.v45-summary span {
+  display: block;
+}
+
+.v45-summary strong {
+  color: #bfdbfe;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.v45-summary span {
+  margin-top: 0.35rem;
+  font-size: 1.05rem;
+  color: #f8fafc;
+  font-weight: 800;
+}
+
+.v45-boundary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.v45-boundary span {
+  border: 1px solid rgba(125, 211, 252, 0.25);
+  border-radius: 999px;
+  padding: 0.4rem 0.6rem;
+  color: #bae6fd;
+  background: rgba(14, 165, 233, 0.08);
+  font-size: 0.8rem;
+}
+
+.v45-messages {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: rgba(15, 23, 42, 0.56);
+}
+
+.v45-messages h3 {
+  margin: 0 0 0.5rem;
+  color: #dbeafe;
+}
+
+.v45-messages ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #cbd5e1;
+}
+
+.v45-table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+}
+
+.v45-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.v45-table-wrap th,
+.v45-table-wrap td {
+  text-align: left;
+  padding: 0.8rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  vertical-align: top;
+}
+
+.v45-table-wrap th {
+  color: #bfdbfe;
+  background: rgba(30, 41, 59, 0.72);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.v45-table-wrap td {
+  color: #e2e8f0;
+}
+
+.v45-table-wrap code {
+  color: #bae6fd;
+  word-break: break-all;
+}
+
+@media (max-width: 760px) {
+  .v45-header {
+    flex-direction: column;
+  }
+
+  .v45-schema {
+    white-space: normal;
+  }
+}
