@@ -1,7 +1,22 @@
 export {};
 
 const V53_RELEASE_VERSION = "5.3.0";
-const V53_LEGACY_VERSIONS = ["5.2.0", "V5.2.0"];
+const V53_LEGACY_VERSIONS = [
+  "4.6.0",
+  "V4.6.0",
+  "4.7.0",
+  "V4.7.0",
+  "4.8.0",
+  "V4.8.0",
+  "4.9.0",
+  "V4.9.0",
+  "5.0.0",
+  "V5.0.0",
+  "5.1.0",
+  "V5.1.0",
+  "5.2.0",
+  "V5.2.0"
+];
 
 function syncV53VisibleVersionOnce() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -33,3 +48,4 @@ setTimeout(syncV53VisibleVersionOnce, 3000);
 setTimeout(syncV53VisibleVersionOnce, 5000);
 setTimeout(syncV53VisibleVersionOnce, 7000);
 setTimeout(syncV53VisibleVersionOnce, 9000);
+setTimeout(syncV53VisibleVersionOnce, 12000);
