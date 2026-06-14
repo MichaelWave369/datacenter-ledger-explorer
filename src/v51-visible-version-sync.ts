@@ -1,5 +1,9 @@
 export {};
 
+import "./v52-public-console-guided-flow.css";
+import "./v52-public-console-guided-flow";
+import "./v52-visible-version-sync";
+
 const V51_RELEASE_VERSION = "5.1.0";
 const V51_LEGACY_VERSIONS = ["5.0.0", "V5.0.0"];
 
