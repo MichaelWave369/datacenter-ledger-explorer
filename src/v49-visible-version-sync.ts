@@ -1,5 +1,9 @@
 export {};
 
+import "./v50-public-release-console.css";
+import "./v50-public-release-console";
+import "./v50-visible-version-sync";
+
 const V49_RELEASE_VERSION = "4.9.0";
 const V49_LEGACY_VERSIONS = ["4.8.0", "V4.8.0"];
 
