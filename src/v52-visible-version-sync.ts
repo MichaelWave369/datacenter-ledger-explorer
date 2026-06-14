@@ -1,5 +1,9 @@
 export {};
 
+import "./v53-public-console-compact-mode.css";
+import "./v53-public-console-compact-mode";
+import "./v53-visible-version-sync";
+
 const V52_RELEASE_VERSION = "5.2.0";
 const V52_LEGACY_VERSIONS = ["5.1.0", "V5.1.0"];
 
