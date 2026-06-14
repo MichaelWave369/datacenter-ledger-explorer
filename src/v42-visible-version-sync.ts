@@ -1,5 +1,9 @@
 export {};
 
+import "./v43-public-share-approval-gate.css";
+import "./v43-public-share-approval-gate";
+import "./v43-visible-version-sync";
+
 const V42_RELEASE_VERSION = "4.2.0";
 const V42_LEGACY_VERSIONS = ["4.1.0", "V4.1.0"];
 
