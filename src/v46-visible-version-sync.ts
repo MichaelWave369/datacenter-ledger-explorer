@@ -1,5 +1,9 @@
 export {};
 
+import "./v47-public-release-compare-tool.css";
+import "./v47-public-release-compare-tool";
+import "./v47-visible-version-sync";
+
 const V46_RELEASE_VERSION = "4.6.0";
 const V46_LEGACY_VERSIONS = ["4.5.0", "V4.5.0"];
 
