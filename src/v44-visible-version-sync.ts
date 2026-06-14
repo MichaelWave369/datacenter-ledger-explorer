@@ -1,5 +1,9 @@
 export {};
 
+import "./v45-public-share-release-manifest.css";
+import "./v45-public-share-release-manifest";
+import "./v45-visible-version-sync";
+
 const V44_RELEASE_VERSION = "4.4.0";
 const V44_LEGACY_VERSIONS = ["4.3.0", "V4.3.0"];
 
