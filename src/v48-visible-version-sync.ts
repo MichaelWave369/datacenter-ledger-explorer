@@ -1,5 +1,9 @@
 export {};
 
+import "./v49-public-release-integrity-seal.css";
+import "./v49-public-release-integrity-seal";
+import "./v49-visible-version-sync";
+
 const V48_RELEASE_VERSION = "4.8.0";
 const V48_LEGACY_VERSIONS = ["4.7.0", "V4.7.0"];
 
