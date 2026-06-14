@@ -1,5 +1,9 @@
 export {};
 
+import "./v46-public-release-index.css";
+import "./v46-public-release-index";
+import "./v46-visible-version-sync";
+
 const V45_RELEASE_VERSION = "4.5.0";
 const V45_LEGACY_VERSIONS = ["4.4.0", "V4.4.0"];
 
