@@ -1,0 +1,186 @@
+.v53-public-console-compact-mode {
+  margin: 24px auto;
+  max-width: 1180px;
+  padding: 24px;
+  border: 1px solid rgba(127, 127, 127, 0.24);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(240, 253, 250, 0.84));
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.1);
+}
+
+.v53-compact-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.v53-compact-kicker {
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.76rem;
+  opacity: 0.72;
+}
+
+.v53-compact-header h2 {
+  margin: 0 0 8px;
+}
+
+.v53-compact-header p {
+  margin: 0;
+  max-width: 760px;
+}
+
+.v53-compact-badge {
+  white-space: nowrap;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(20, 184, 166, 0.28);
+  background: rgba(20, 184, 166, 0.1);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.v53-compact-boundary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.v53-compact-boundary span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  font-size: 0.78rem;
+}
+
+.v53-compact-controls,
+.v53-compact-selector-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.v53-compact-controls button,
+.v53-compact-selector-row button,
+.v53-compact-selector-row select {
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.v53-compact-controls button,
+.v53-compact-selector-row button {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.v53-compact-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.v53-compact-selector-row label {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 420px);
+  flex: 1 1 380px;
+  font-weight: 700;
+}
+
+.v53-compact-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.v53-compact-card {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.v53-compact-card span {
+  display: block;
+  font-size: 0.78rem;
+  opacity: 0.68;
+}
+
+.v53-compact-card strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.v53-compact-meta {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.v53-compact-table-wrap {
+  overflow-x: auto;
+}
+
+.v53-compact-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.v53-compact-table-wrap th,
+.v53-compact-table-wrap td {
+  text-align: left;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  padding: 10px;
+  vertical-align: top;
+}
+
+.v53-compact-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v53-compact-row-actions button {
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+}
+
+[data-v53-compact-hidden="true"] {
+  display: none !important;
+}
+
+html[data-dcl-compact-mode="compact"] .v53-public-console-compact-mode,
+html[data-dcl-compact-mode="single_panel"] .v53-public-console-compact-mode {
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+}
+
+@media (max-width: 820px) {
+  .v53-compact-header {
+    display: block;
+  }
+
+  .v53-compact-badge {
+    display: inline-block;
+    margin-top: 12px;
+    white-space: normal;
+  }
+
+  .v53-compact-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
