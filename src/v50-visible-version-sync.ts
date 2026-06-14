@@ -1,5 +1,9 @@
 export {};
 
+import "./v51-public-console-quick-actions.css";
+import "./v51-public-console-quick-actions";
+import "./v51-visible-version-sync";
+
 const V50_RELEASE_VERSION = "5.0.0";
 const V50_LEGACY_VERSIONS = ["4.9.0", "V4.9.0"];
 
